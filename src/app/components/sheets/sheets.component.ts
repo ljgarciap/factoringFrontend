@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-sheets',
@@ -20,19 +22,46 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
             class="search-input"
           />
         </div>
+
+        <div class="tabs-container">
+          <button 
+            (click)="setCategory('cartera')" 
+            [class.active]="categoria === 'cartera'" 
+            class="tab-btn"
+          >
+            Cartera
+          </button>
+          <button 
+            (click)="setCategory('op')" 
+            [class.active]="categoria === 'op'" 
+            class="tab-btn"
+          >
+            Factoring Op
+          </button>
+          <button 
+            (click)="setCategory('pagos')" 
+            [class.active]="categoria === 'pagos'" 
+            class="tab-btn"
+          >
+            Factoring Pagos
+          </button>
+          <button 
+            (click)="setCategory('opf')" 
+            [class.active]="categoria === 'opf'" 
+            class="tab-btn"
+          >
+            Confirming
+          </button>
+        </div>
         
         <div class="actions-group">
-          <div class="category-wrapper">
-            <select [(ngModel)]="categoria" (change)="onCategoryChange()" class="modern-select">
-              <option value="cartera">Cartera</option>
-              <option value="op">Factoring Op</option>
-              <option value="pagos">Factoring Pagos</option>
-              <option value="opf">Confirming</option>
-            </select>
-          </div>
           <button (click)="loadHistory()" class="btn-action" [class.loading]="isLoading">
             <span class="icon">🔄</span>
             <span class="text">{{ isLoading ? 'Cargando...' : 'Actualizar' }}</span>
+          </button>
+          <button (click)="exportToCsv()" class="btn-action green">
+            <span class="icon">📥</span>
+            <span class="text">Excel</span>
           </button>
         </div>
       </div>
@@ -102,6 +131,22 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 
                     <ng-container *ngSwitchCase="'actividad_economica'">
                       <span class="activity-text" [title]="row[col]">{{ row[col] || '-' }}</span>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'ciudad'">
+                      <div class="editable-cell">
+                        <input 
+                          *ngIf="categoria === 'cartera'"
+                          type="text" 
+                          [(ngModel)]="row[col]" 
+                          (blur)="saveRecord(row)"
+                          class="table-input"
+                        />
+                        <span class="save-status inline" [class.success]="saveStatus[row.id] === 'success'" [class.saving]="saveStatus[row.id] === 'saving'">
+                          {{ saveStatus[row.id] === 'saving' ? '⏳' : (saveStatus[row.id] === 'success' ? '✅' : '') }}
+                        </span>
+                        <span *ngIf="categoria !== 'cartera'">{{ row[col] || '-' }}</span>
+                      </div>
                     </ng-container>
 
                     <!-- Currency Formatting -->
@@ -227,21 +272,37 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
       display: flex;
       gap: 12px;
       align-items: center;
+      margin-left: auto;
     }
 
-    .modern-select {
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      padding: 8px 16px;
-      color: #334155;
-      font-size: 14px;
-      outline: none;
-      cursor: pointer;
-      height: 40px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    .tabs-container {
+      display: flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 10px;
+      gap: 4px;
 
-      &:hover { border-color: #cbd5e1; }
+      .tab-btn {
+        border: none;
+        background: transparent;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+
+        &.active {
+          background: white;
+          color: #1e293b;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        &:hover:not(.active) {
+          background: #e2e8f0;
+        }
+      }
     }
 
     .btn-action {
@@ -506,11 +567,27 @@ export class SheetsComponent implements OnInit {
   // TODO: Use environment variable instead of hardcoded URL in production
   private baseUrl = 'http://localhost:8000/api';
 
-  constructor(private http: HttpClient) { }
+  private routeSub!: Subscription;
+
+  constructor(private http: HttpClient, private route: ActivatedRoute) { }
 
   ngOnInit() {
-    this.loadHistory();
     this.loadSectors();
+
+    // Listen to query parameters for category and search
+    this.routeSub = this.route.queryParams.subscribe(params => {
+      if (params['categoria']) {
+        this.categoria = params['categoria'];
+      }
+      if (params['q']) {
+        this.searchTerm = params['q'];
+      }
+      this.loadHistory();
+    });
+  }
+
+  ngOnDestroy() {
+    if (this.routeSub) this.routeSub.unsubscribe();
   }
 
   loadSectors() {
@@ -575,9 +652,19 @@ export class SheetsComponent implements OnInit {
     this.loadHistory();
   }
 
+  exportToCsv() {
+    const url = `${this.baseUrl}/history/${this.categoria}/export?search=${this.searchTerm}`;
+    window.open(url, '_blank');
+  }
+
   onPerPageChange() {
     this.currentPage = 1;
     this.loadHistory();
+  }
+
+  setCategory(cat: string) {
+    this.categoria = cat;
+    this.onCategoryChange();
   }
 
   onCategoryChange() {

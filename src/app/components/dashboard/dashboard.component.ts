@@ -1,9 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BaseChartDirective, provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { ChartConfiguration, ChartData, ChartType, Chart, registerables } from 'chart.js';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // Register all Chart.js components
 Chart.register(...registerables);
@@ -11,26 +14,51 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, BaseChartDirective],
+  imports: [CommonModule, HttpClientModule, FormsModule, BaseChartDirective],
   providers: [provideCharts(withDefaultRegisterables())],
   template: `
-    <div class="dashboard-wrapper">
+    <div class="dashboard-wrapper" #dashboardContent>
       <div class="toolbar">
         <div class="info">
-          <h3>📊 Análisis Analítico - Cartera & Operaciones</h3>
-          <p>Métricas avanzadas y reportes diarios sincronizados.</p>
+          <h3>📊 Análisis de Cartera & Operaciones</h3>
+          <p>Métricas clave y filtros dinámicos.</p>
         </div>
         
-        <div class="tabs">
-          <button (click)="currentTab = 'cartera'" [class.active]="currentTab === 'cartera'">Cartera</button>
-          <button (click)="currentTab = 'pagos'" [class.active]="currentTab === 'pagos'">Pagos & Recaudos</button>
-          <button (click)="currentTab = 'mora'" [class.active]="currentTab === 'mora'">Gestión de Mora</button>
+        <div class="filters-row">
+          <div class="filter-group">
+            <label>Inicio</label>
+            <input type="date" [(ngModel)]="filterFechaInicio" (change)="loadStats()" class="input-date">
+          </div>
+          <div class="filter-group">
+            <label>Fin</label>
+            <input type="date" [(ngModel)]="filterFechaFin" (change)="loadStats()" class="input-date">
+          </div>
+          <div class="filter-group">
+            <label>Cliente/ID</label>
+            <div class="search-input-wrapper">
+              <input type="text" [(ngModel)]="filterCliente" (keyup.enter)="loadStats()" (blur)="loadStats()" placeholder="Nombre o ID..." class="input-search">
+              <button *ngIf="filterCliente" (click)="filterCliente = ''; loadStats()" class="btn-clear-search">✕</button>
+            </div>
+          </div>
         </div>
 
-        <button (click)="loadStats()" class="btn-refresh" [class.spinning]="isRefreshing">
-          <span class="icon">{{ isRefreshing ? '⌛' : '🔄' }}</span> 
-          {{ isRefreshing ? '...' : 'Actualizar' }}
-        </button>
+        <div class="actions">
+          <div class="tabs">
+            <button (click)="currentTab = 'cartera'" [class.active]="currentTab === 'cartera'">Cartera</button>
+            <button (click)="currentTab = 'pagos'" [class.active]="currentTab === 'pagos'">Pagos & Recaudos</button>
+            <button (click)="currentTab = 'mora'" [class.active]="currentTab === 'mora'">Gestión de Mora</button>
+          </div>
+
+          <div class="btn-group">
+            <button (click)="loadStats()" class="btn-refresh" [class.spinning]="isRefreshing">
+              <span class="icon">{{ isRefreshing ? '⌛' : '🔄' }}</span> 
+            </button>
+            <button (click)="exportToPdf()" class="btn-export-pdf" [disabled]="isGeneratingPdf">
+              <span class="icon">{{ isGeneratingPdf ? '⌛' : '📄' }}</span> 
+              {{ isGeneratingPdf ? 'Generando...' : 'PDF' }}
+            </button>
+          </div>
+        </div>
       </div>
       
       <div class="content-scroll" *ngIf="!isLoading && stats">
@@ -188,18 +216,90 @@ Chart.register(...registerables);
       height: calc(100vh - 80px);
       background: #f8f9fa;
       overflow: hidden;
+      
+      &.exporting {
+        height: auto !important;
+        overflow: visible !important;
+      }
     }
 
     .toolbar {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      flex-direction: column;
+      gap: 1rem;
       background: white;
       padding: 1rem 2rem;
       border-bottom: 1px solid #e9ecef;
       
       h3 { margin: 0; font-size: 1.1rem; font-weight: 700; color: #344767; }
       p { margin: 0; color: #67748e; font-size: 0.8rem; }
+    }
+
+    .filters-row {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      label { font-size: 0.65rem; font-weight: 800; color: #adb5bd; text-transform: uppercase; margin-bottom: 2px; }
+      .input-date, .input-search {
+        border: 1px solid #e9ecef;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        color: #344767;
+        outline: none;
+        &:focus { border-color: #5e72e4; }
+      }
+      .input-search { width: 180px; }
+    }
+
+    .search-input-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .btn-clear-search {
+      position: absolute;
+      right: 8px;
+      background: none;
+      border: none;
+      color: #adb5bd;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 4px;
+      &:hover { color: #f5365c; }
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .btn-export-pdf {
+      background: #f5365c;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      &:hover { background: #f41443; }
     }
 
     .tabs {
@@ -341,11 +441,19 @@ Chart.register(...registerables);
   `]
 })
 export class DashboardComponent implements OnInit {
+  @ViewChild('dashboardContent') dashboardContent!: ElementRef;
+
   currentTab: string = 'cartera';
   isRefreshing = false;
   isLoading = true;
+  isGeneratingPdf = false;
   stats: any = null;
   private apiUrl = 'http://localhost:8000/api/dashboard/stats';
+
+  // Filters
+  filterFechaInicio: string = '';
+  filterFechaFin: string = '';
+  filterCliente: string = '';
 
   // Chart: Ciudades
   public cityChartData: ChartData<'doughnut'> = {
@@ -387,7 +495,12 @@ export class DashboardComponent implements OnInit {
     this.isRefreshing = true;
     this.isLoading = true;
 
-    this.http.get(this.apiUrl).subscribe({
+    let params = `?t=${Date.now()}`;
+    if (this.filterFechaInicio) params += `&fecha_inicio=${this.filterFechaInicio}`;
+    if (this.filterFechaFin) params += `&fecha_fin=${this.filterFechaFin}`;
+    if (this.filterCliente) params += `&cliente=${this.filterCliente}`;
+
+    this.http.get(this.apiUrl + params).subscribe({
       next: (data: any) => {
         this.stats = data;
         this.updateCharts();
@@ -400,6 +513,49 @@ export class DashboardComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  async exportToPdf() {
+    this.isGeneratingPdf = true;
+    const element = this.dashboardContent.nativeElement;
+
+    // Preparation: Force height and visibility to capture scrollable content
+    const originalHeight = element.style.height;
+    const originalOverflow = element.style.overflow;
+
+    element.style.height = 'auto';
+    element.style.overflow = 'visible';
+
+    // Wait a bit for layout to settle
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#f8f9fa',
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight,
+        y: window.scrollY // Ensure we capture from current or top if needed
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`reporte_dashboard_${this.currentTab}_${new Date().getTime()}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF', error);
+    } finally {
+      // Revert styles
+      element.style.height = originalHeight;
+      element.style.overflow = originalOverflow;
+      this.isGeneratingPdf = false;
+    }
   }
 
   updateCharts() {
