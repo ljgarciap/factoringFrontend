@@ -34,8 +34,17 @@
       </button>
     </div>
 
-    <div *ngIf="mensaje" class="status-badge" [class.error]="status === 'error'">
-      {{ mensaje }}
+    <div *ngIf="mensaje" class="status-badge" [class.error]="status === 'error'" [class.success]="status === 'success'"
+      [class.processing]="!status && mensaje">
+      <div class="status-content">
+        <span class="status-icon">
+          {{ status === 'success' ? '✅' : (status === 'error' ? '❌' : '⏳') }}
+        </span>
+        <span class="status-text">{{ mensaje }}</span>
+      </div>
+      <button *ngIf="status === 'error' || status === 'success'" class="btn-reset" (click)="reset()">
+        {{ status === 'success' ? 'Cargar otro' : 'Reintentar' }}
+      </button>
     </div>
   </div>
 </div>

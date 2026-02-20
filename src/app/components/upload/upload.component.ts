@@ -51,9 +51,13 @@ export class UploadComponent {
     this.http.post(webhookUrl, formData).subscribe({
       next: (response: any) => {
         console.log('Respuesta de n8n:', response);
-        // n8n sometimes returns a 200 OK but with an error inside
-        if (response && response.errorMessage) {
-          this.mensaje = 'Error desde n8n: ' + response.errorMessage;
+
+        // n8n often returns an array. Let's check if any item is an error item
+        const responseArray = Array.isArray(response) ? response : [response];
+        const errorItem = responseArray.find(item => item && (item.errorMessage || item.error));
+
+        if (errorItem) {
+          this.mensaje = 'Error desde n8n: ' + (errorItem.errorMessage || errorItem.error);
           this.status = 'error';
           this.cargando = false;
           return;
@@ -61,12 +65,15 @@ export class UploadComponent {
 
         if (response && response.message) {
           this.mensaje = response.message;
-        } else {
+        } else if (responseArray.length > 0) {
           this.mensaje = 'Procesado con éxito y guardado en la Base de Datos';
+        } else {
+          this.mensaje = 'El proceso terminó sin devolver datos (podría ser un archivo vacío or filtrado)';
         }
         this.status = 'success';
         this.cargando = false;
-        this.selectedFile = null; // Limpiar selección
+        // Keep the file selected so the user knows what they uploaded, 
+        // but the 'cargando' state is off.
       },
       error: (err) => {
         console.error('Error completo:', err);
@@ -90,5 +97,16 @@ export class UploadComponent {
         this.cargando = false;
       }
     });
+  }
+
+  // Permite limpiar todo y volver a empezar
+  reset(): void {
+    this.selectedFile = null;
+    this.mensaje = '';
+    this.status = '';
+    this.cargando = false;
+    // Forzar el reset del input file en el DOM si es necesario
+    const fileInput = document.querySelector('.file-input') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
   }
 }

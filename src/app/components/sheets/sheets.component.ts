@@ -60,7 +60,56 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
               <tr *ngFor="let row of data">
                 <td *ngFor="let col of getColumns()">
                   <ng-container [ngSwitch]="col">
-                    <span *ngSwitchCase="'id'" class="id-badge">#{{ row[col] }}</span>
+                    <ng-container *ngSwitchCase="'id'">
+                      <span class="id-badge">#{{ row[col] }}</span>
+                    </ng-container>
+                    
+                    <!-- Editable Fields for Cartera -->
+                    <ng-container *ngSwitchCase="'observaciones'">
+                      <div class="editable-cell">
+                        <input 
+                          *ngIf="categoria === 'cartera'"
+                          type="text" 
+                          [(ngModel)]="row[col]" 
+                          (blur)="saveRecord(row)"
+                          placeholder="Agregar nota..."
+                          class="table-input"
+                        />
+                        <span class="save-status inline" [class.success]="saveStatus[row.id] === 'success'" [class.saving]="saveStatus[row.id] === 'saving'">
+                          {{ saveStatus[row.id] === 'saving' ? '⏳' : (saveStatus[row.id] === 'success' ? '✅' : '') }}
+                        </span>
+                        <span *ngIf="categoria !== 'cartera'">{{ row[col] || '-' }}</span>
+                      </div>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'sector_economico'">
+                      <div class="editable-cell">
+                        <select 
+                          *ngIf="categoria === 'cartera'"
+                          [(ngModel)]="row[col]" 
+                          (change)="saveRecord(row)"
+                          class="table-select sector-select"
+                          [title]="row['actividad_economica'] || ''"
+                        >
+                          <option *ngFor="let s of sectors" [value]="s.nombre">{{ s.nombre }}</option>
+                        </select>
+                        <span class="save-status inline" [class.success]="saveStatus[row.id] === 'success'" [class.saving]="saveStatus[row.id] === 'saving'">
+                          {{ saveStatus[row.id] === 'saving' ? '⏳' : (saveStatus[row.id] === 'success' ? '✅' : '') }}
+                        </span>
+                        <span *ngIf="categoria !== 'cartera'">{{ row[col] || '-' }}</span>
+                      </div>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'actividad_economica'">
+                      <span class="activity-text" [title]="row[col]">{{ row[col] || '-' }}</span>
+                    </ng-container>
+
+                    <!-- Currency Formatting -->
+                    <span *ngSwitchCase="'valor_desembolso'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'saldo_capital'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'valor_vencido'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'valor_mora'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    
                     <span *ngSwitchDefault>{{ row[col] !== null ? row[col] : '-' }}</span>
                   </ng-container>
                 </td>
@@ -262,7 +311,7 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
       }
 
       td {
-        padding: 16px 24px;
+        padding: 12px 24px;
         border-bottom: 1px solid #f1f5f9;
         color: #334155;
         font-size: 14px;
@@ -271,6 +320,85 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 
       tr:hover td {
         background-color: #f8fafc;
+      }
+
+      .table-input {
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 4px 8px;
+        width: 100%;
+        min-width: 150px;
+        font-size: 13px;
+        color: #334155;
+        background: transparent;
+        transition: all 0.2s;
+
+        &:hover, &:focus {
+          border-color: #cbd5e1;
+          background: white;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+          outline: none;
+        }
+      }
+
+      .sector-input {
+        font-weight: 600;
+        color: #3b82f6;
+        text-transform: uppercase;
+        font-size: 11px;
+        min-width: 100px;
+      }
+
+      .table-select {
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        padding: 4px 8px;
+        width: 100%;
+        min-width: 140px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #334155;
+        background: white;
+        cursor: pointer;
+        outline: none;
+
+        &:focus {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+      }
+
+      .sector-select {
+        color: #3b82f6;
+        text-transform: uppercase;
+      }
+
+      .activity-text {
+        font-size: 12px;
+        color: #64748b;
+        max-width: 200px;
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .editable-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+        min-width: 180px;
+      }
+
+      .save-status {
+        font-size: 14px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        flex-shrink: 0;
+        margin-left: 4px;
+        
+        &.success, &.saving { opacity: 1; }
       }
 
       .id-badge {
@@ -363,6 +491,8 @@ export class SheetsComponent implements OnInit {
   data: any[] = [];
   isLoading = false;
   math = Math;
+  saveStatus: { [id: number]: 'saving' | 'success' | 'error' | null } = {};
+  sectors: any[] = [];
 
   // Parámetros de tabla
   searchTerm: string = '';
@@ -374,19 +504,24 @@ export class SheetsComponent implements OnInit {
   perPage: number = 5;
 
   // TODO: Use environment variable instead of hardcoded URL in production
-  private baseUrl = 'http://localhost:8000/api/history';
+  private baseUrl = 'http://localhost:8000/api';
 
   constructor(private http: HttpClient) { }
 
   ngOnInit() {
     this.loadHistory();
+    this.loadSectors();
+  }
+
+  loadSectors() {
+    this.http.get<any[]>(`${this.baseUrl}/sectores`).subscribe(res => {
+      this.sectors = res;
+    });
   }
 
   loadHistory() {
     this.isLoading = true;
-
-    // Construir la URL con parámetros de búsqueda, ordenamiento y paginación
-    const url = new URL(`${this.baseUrl}/${this.categoria}`);
+    const url = new URL(`${this.baseUrl}/history/${this.categoria}`);
     if (this.searchTerm) url.searchParams.append('search', this.searchTerm);
     if (this.sortBy) url.searchParams.append('sortBy', this.sortBy);
     if (this.sortDir) url.searchParams.append('sortDir', this.sortDir);
@@ -395,7 +530,6 @@ export class SheetsComponent implements OnInit {
 
     this.http.get<any>(url.toString()).subscribe({
       next: (response) => {
-        // Laravel's paginate() structure
         this.data = response.data || [];
         this.currentPage = response.current_page || 1;
         this.lastPage = response.last_page || 1;
@@ -410,8 +544,34 @@ export class SheetsComponent implements OnInit {
     });
   }
 
+  saveRecord(row: any) {
+    this.saveStatus[row.id] = 'saving';
+    const url = `${this.baseUrl}/history/${this.categoria}/${row.id}`;
+    // Only send relevant editable fields
+    const payload = {
+      observaciones: row.observaciones,
+      sector_economico: row.sector_economico,
+      ciudad: row.ciudad
+    };
+
+    this.http.patch(url, payload).subscribe({
+      next: () => {
+        this.saveStatus[row.id] = 'success';
+        setTimeout(() => {
+          if (this.saveStatus[row.id] === 'success') {
+            this.saveStatus[row.id] = null;
+          }
+        }, 3000);
+      },
+      error: (err) => {
+        console.error('Error updating record', err);
+        this.saveStatus[row.id] = 'error';
+      }
+    });
+  }
+
   onSearch() {
-    this.currentPage = 1; // Reset to first page
+    this.currentPage = 1;
     this.loadHistory();
   }
 
@@ -447,10 +607,33 @@ export class SheetsComponent implements OnInit {
 
   getColumns(): string[] {
     if (this.data.length === 0) return [];
-    return Object.keys(this.data[0]).filter(k => !['updated_at'].includes(k)); // Guardaremos created_at pero quitaremos updated_at para que no sea redundante
+
+    const allKeys = Object.keys(this.data[0]);
+
+    if (this.categoria === 'cartera') {
+      // Custom Order for Cartera
+      const prioritized = [
+        'id', 'numero_radicado', 'cliente', 'identificacion',
+        'actividad_economica', 'sector_economico', 'ciudad',
+        'valor_desembolso', 'saldo_capital',
+        'vencido', 'dias_vencido', 'valor_vencido', 'tiene_mora', 'valor_mora',
+        'observaciones'
+      ];
+
+      // Filter out keys we don't want and add remaining keys at the end
+      const filtered = prioritized.filter(k => allKeys.includes(k));
+      const excluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'estado_capital', 'fecha_vencimiento_capital'];
+      const others = allKeys.filter(k => !prioritized.includes(k) && !excluded.includes(k));
+
+      return [...filtered, ...others];
+    }
+
+    return allKeys.filter(k => !['updated_at', 'created_at'].includes(k));
   }
 
   formatHeader(key: string): string {
+    if (key === 'valor_desembolso') return 'DESEMBOLSO';
+    if (key === 'numero_radicado') return 'RADICADO';
     return key.replace(/_/g, ' ').toUpperCase();
   }
 }
