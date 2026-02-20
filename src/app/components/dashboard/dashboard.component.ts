@@ -214,38 +214,65 @@ Chart.register(...registerables);
         <!-- TAB: PAGOS -->
         <div class="tab-content" *ngIf="currentTab === 'pagos'">
           <div class="kpi-grid">
-            <div class="kpi-card green">
-              <label>Registros de Pago</label>
-              <div class="value">{{ stats.factoring.pagos_count }}</div>
-              <div class="sub">Total recaudos aplicados</div>
-            </div>
             <div class="kpi-card blue">
               <label>Total Recaudado</label>
               <div class="value">{{ stats.factoring.total_collected | currency:'USD':'symbol':'1.0-0' }}</div>
-              <div class="sub">Capital + Intereses recibidos</div>
+            </div>
+            <div class="kpi-card green">
+              <label>Eficiencia de Cobro (días)</label>
+              <div class="value">{{ stats.factoring.efficiency_score }}</div>
+            </div>
+            <div class="kpi-card orange">
+              <label>Costo de Pronto Pago</label>
+              <div class="value">{{ stats.factoring.early_payment_cost | currency:'USD':'symbol':'1.0-0' }}</div>
+            </div>
+            <div class="kpi-card purple">
+              <label>Saldos Pendientes</label>
+              <div class="value">{{ stats.factoring.outstanding_balance | currency:'USD':'symbol':'1.0-0' }}</div>
+            </div>
+          </div>
+
+          <div class="chart-row mt-4">
+            <div class="chart-container">
+              <h4>Monto Pagado a lo largo del tiempo</h4>
+              <div class="chart-wrapper">
+                <canvas baseChart
+                  [data]="paymentTimelineChartData"
+                  [options]="barChartOptions"
+                  [type]="'line'">
+                </canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h4>Distribución de Pagos por Cliente</h4>
+              <div class="chart-wrapper">
+                <canvas baseChart
+                  [data]="paymentDistributionChartData"
+                  [options]="pieChartOptions"
+                  [type]="'doughnut'">
+                </canvas>
+              </div>
             </div>
           </div>
 
           <div class="report-section mt-4">
-            <h4>Desglose de Pagos Diarios (Capital vs Intereses)</h4>
-            <div class="table-card">
-              <table class="simple-table interactive">
+            <h4>Registro de pagos</h4>
+            <div class="table-card no-shadow">
+              <table class="simple-table interactive x-small">
                 <thead>
                   <tr>
-                    <th>Fecha</th>
                     <th>Cliente</th>
-                    <th class="text-right">Capital</th>
-                    <th class="text-right">Intereses</th>
-                    <th class="text-right">Total Pagado</th>
+                    <th>Factura Nro</th>
+                    <th>Dias Cartera</th>
+                    <th class="text-right">Monto Pagado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let p of stats.factoring.daily_payments" (click)="navigateToSheets('pagos', p.cliente)" class="row-clickable">
-                    <td>{{ p.fecha | date:'dd/MM/yyyy' }}</td>
+                  <tr *ngFor="let p of stats.factoring.payment_entries" class="row-clickable">
                     <td>{{ p.cliente }}</td>
-                    <td class="text-right">{{ p.capital | currency:'USD':'symbol':'1.0-0' }}</td>
-                    <td class="text-right">{{ p.intereses | currency:'USD':'symbol':'1.0-0' }}</td>
-                    <td class="text-right bold blue-text">{{ p.total | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td>{{ p.factura_nro }}</td>
+                    <td>{{ p.dias_cartera }}</td>
+                    <td class="text-right bold">{{ p.monto_pagado | currency:'USD':'symbol':'1.0-0' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -257,16 +284,84 @@ Chart.register(...registerables);
         <div class="tab-content" *ngIf="currentTab === 'factoring'">
           <div class="kpi-grid">
             <div class="kpi-card blue">
-              <label>Operaciones Activas</label>
-              <div class="value">{{ stats.factoring.op_count }}</div>
+              <label>Volumen Total Financiado</label>
+              <div class="value">{{ stats.factoring.volumen_total | currency:'USD':'symbol':'1.0-0' }}</div>
             </div>
             <div class="kpi-card green">
-              <label>Exposición Total</label>
-              <div class="value">{{ stats.factoring.exposure | currency:'USD':'symbol':'1.0-0' }}</div>
+              <label>Valor Desembolsado</label>
+              <div class="value">{{ stats.factoring.valor_desembolsado | currency:'USD':'symbol':'1.0-0' }}</div>
+            </div>
+            <div class="kpi-card orange">
+              <label>Valor Reserva</label>
+              <div class="value">{{ stats.factoring.valor_reserva | currency:'USD':'symbol':'1.0-0' }}</div>
             </div>
             <div class="kpi-card purple">
-              <label>Tasa Promedio</label>
+              <label>Margen de Descuento</label>
               <div class="value">{{ stats.factoring.avg_tasa }}%</div>
+            </div>
+          </div>
+
+          <div class="chart-row mt-4">
+            <div class="chart-container">
+              <h4>Valor Reserva Objetivo ($120M)</h4>
+              <div class="bullet-chart-container">
+                <div class="bullet-bg">
+                  <div class="bullet-range range-1"></div>
+                  <div class="bullet-range range-2"></div>
+                  <div class="bullet-range range-3"></div>
+                  <div class="bullet-marker" [style.left.%]="(stats.factoring.valor_reserva / 120000000) * 100"></div>
+                  <div class="bullet-target" style="left: 80%"></div>
+                </div>
+                <div class="bullet-labels">
+                  <span>0</span>
+                  <span>40M</span>
+                  <span>80M</span>
+                  <span>120M</span>
+                  <span>140M</span>
+                </div>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h4>Exposición por Pagador</h4>
+              <div class="chart-wrapper">
+                <canvas baseChart
+                  [data]="exposureChartData"
+                  [options]="horizontalBarChartOptions"
+                  [type]="'bar'">
+                </canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-section mt-4">
+            <h4>Vencimientos Factoring</h4>
+            <div class="table-card">
+              <table class="simple-table interactive">
+                <thead>
+                  <tr>
+                    <th>Pagador</th>
+                    <th>Fecha Vencimiento</th>
+                    <th class="text-right">Monto</th>
+                    <th>Estado</th>
+                    <th>Días</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let v of stats.factoring.vencimientos" class="row-clickable">
+                    <td>{{ v.pagador }}</td>
+                    <td>{{ v.fecha | date:'dd/MM/yyyy' }}</td>
+                    <td class="text-right bold">{{ v.monto | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td>
+                      <span class="badge" [ngClass]="{
+                        'danger': v.estado === 'Vencido',
+                        'warning': v.estado === 'Por Vencer',
+                        'success': v.estado === 'Vigente'
+                      }">{{ v.estado }}</span>
+                    </td>
+                    <td [class.danger-text]="v.dias < 0">{{ v.dias }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -275,16 +370,86 @@ Chart.register(...registerables);
         <div class="tab-content" *ngIf="currentTab === 'confirming'">
           <div class="kpi-grid">
             <div class="kpi-card blue">
-              <label>Documentos</label>
-              <div class="value">{{ stats.confirming.count }}</div>
-            </div>
-            <div class="kpi-card green">
-              <label>Saldo en Confirming</label>
+              <label>Valor Nominal Total</label>
               <div class="value">{{ stats.confirming.total_val | currency:'USD':'symbol':'1.0-0' }}</div>
             </div>
-            <div class="kpi-card purple">
-              <label>Tasa Media Factor</label>
-              <div class="value">{{ stats.confirming.avg_tasa }}%</div>
+            <div class="kpi-card green">
+              <label>Rendimientos Proyectados</label>
+              <div class="value">{{ stats.confirming.rendimientos_proyectados | currency:'USD':'symbol':'1.0-0' }}</div>
+            </div>
+            <div class="kpi-card orange">
+              <label>Total a Pagar por Deudores</label>
+              <div class="value">{{ stats.confirming.total_pagar_deudores | currency:'USD':'symbol':'1.0-0' }}</div>
+            </div>
+          </div>
+
+          <div class="chart-row mt-4">
+            <div class="chart-container">
+              <h4>Análisis de Emisores</h4>
+              <div class="chart-wrapper">
+                <canvas baseChart
+                  [data]="emitterAnalysisChartData"
+                  [options]="pieChartOptions"
+                  [type]="'pie'">
+                </canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h4>Tabla de Vencimientos y Días</h4>
+              <div class="table-card no-shadow">
+                <table class="simple-table interactive x-small">
+                  <thead>
+                    <tr>
+                      <th>ID Título</th>
+                      <th>Emisor</th>
+                      <th>Fecha Final</th>
+                      <th class="text-right">Días</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let v of stats.confirming.vencimientos" class="row-clickable">
+                      <td>{{ v.id_titulo }}</td>
+                      <td>{{ v.emisor }}</td>
+                      <td>{{ v.fecha_final | date:'dd MMM yyyy' }}</td>
+                      <td class="text-right bold" [class.danger-text]="v.dias < 0">{{ v.dias }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-row mt-4">
+            <div class="chart-container">
+              <h4>Gráfico de Barras de Tasa Media</h4>
+              <div class="chart-wrapper">
+                <canvas baseChart
+                  [data]="emitterTasaChartData"
+                  [options]="barChartOptions"
+                  [type]="'bar'">
+                </canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h4>Rendimientos por Emisor</h4>
+              <div class="table-card no-shadow">
+                <table class="simple-table interactive x-small">
+                  <thead>
+                    <tr>
+                      <th>Emisor</th>
+                      <th class="text-right">Valor Nominal</th>
+                      <th class="text-right">Rendimientos Proyectados</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let r of stats.confirming.rendimientos_emisor" class="row-clickable">
+                      <td>{{ r.emisor }}</td>
+                      <td class="text-right">{{ r.valor_nominal | currency:'USD':'symbol':'1.0-0' }}</td>
+                      <td class="text-right bold blue-text">{{ r.rendimientos | currency:'USD':'symbol':'1.0-0' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
@@ -495,6 +660,13 @@ Chart.register(...registerables);
       .bold { font-weight: 700; color: #32325d; }
       .danger { color: #f5365c; }
       .blue-text { color: #5e72e4; }
+      
+      .simple-table.x-small {
+        font-size: 0.75rem;
+        th, td { padding: 8px; }
+      }
+      
+      .table-card.no-shadow { box-shadow: none; padding: 0; }
 
       &.interactive {
         tr.row-clickable {
@@ -552,6 +724,49 @@ Chart.register(...registerables);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    .danger-text { color: #f5365c; font-weight: 700; }
+    .success { background: #e8f9f1; color: #2dce89; }
+    
+    /* Bullet Chart Styles */
+    .bullet-chart-container {
+      padding: 20px 0;
+      .bullet-bg {
+        height: 40px;
+        background: #e9ecef;
+        position: relative;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .bullet-range { position: absolute; height: 100%; top: 0; }
+      .range-1 { background: #ced4da; width: 40%; }
+      .range-2 { background: #dee2e6; width: 70%; }
+      .range-3 { background: #e9ecef; width: 100%; }
+      .bullet-marker {
+        position: absolute;
+        top: 25%;
+        height: 50%;
+        width: 8px;
+        background: #5e72e4;
+        z-index: 2;
+        box-shadow: 0 0 5px rgba(0,0,0,0.2);
+      }
+      .bullet-target {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #344767;
+        z-index: 3;
+      }
+      .bullet-labels {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 5px;
+        font-size: 0.7rem;
+        color: #8898aa;
+      }
+    }
+
     .mt-4 { margin-top: 2rem; }
   `]
 })
@@ -606,6 +821,59 @@ export class DashboardComponent implements OnInit {
     }]
   };
 
+  // Chart: Exposición por Pagador
+  public exposureChartData: ChartData<'bar'> = {
+    labels: [],
+    datasets: [{
+      data: [],
+      label: 'Monto Expuesto',
+      backgroundColor: '#5e72e4',
+      borderRadius: 5
+    }]
+  };
+
+  // Chart: Análisis de Emisores (Confirming)
+  public emitterAnalysisChartData: ChartData<'pie'> = {
+    labels: [],
+    datasets: [{
+      data: [],
+      backgroundColor: ['#5e72e4', '#2dce89', '#fb6340', '#11cdef', '#f5365c', '#8965e0', '#ffd600']
+    }]
+  };
+
+  // Chart: Tasa Media Emisor (Confirming)
+  public emitterTasaChartData: ChartData<'bar'> = {
+    labels: [],
+    datasets: [{
+      data: [],
+      label: 'Tasa Factor',
+      backgroundColor: '#5e72e4',
+      borderRadius: 5
+    }]
+  };
+
+  // Chart: Monto Pagado Timeline (Pagos)
+  public paymentTimelineChartData: ChartData<'line'> = {
+    labels: [],
+    datasets: [{
+      data: [],
+      label: 'Monto Pagado',
+      borderColor: '#5e72e4',
+      backgroundColor: 'rgba(94, 114, 228, 0.1)',
+      fill: true,
+      tension: 0.4
+    }]
+  };
+
+  // Chart: Distribución por Cliente (Pagos)
+  public paymentDistributionChartData: ChartData<'doughnut'> = {
+    labels: [],
+    datasets: [{
+      data: [],
+      backgroundColor: ['#5e72e4', '#2dce89', '#fb6340', '#11cdef', '#f5365c', '#8965e0', '#ffd600']
+    }]
+  };
+
   public pieChartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -616,6 +884,14 @@ export class DashboardComponent implements OnInit {
     responsive: true,
     maintainAspectRatio: false,
     scales: { y: { beginAtZero: true } }
+  };
+
+  public horizontalBarChartOptions: ChartConfiguration['options'] = {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true } }
   };
 
   constructor(private http: HttpClient, private router: Router) { }
@@ -652,39 +928,117 @@ export class DashboardComponent implements OnInit {
     this.isGeneratingPdf = true;
     const element = this.dashboardContent.nativeElement;
 
-    // Preparation: Force height and visibility to capture scrollable content
+    // Preparation: Hide toolbar and adjust content for capture
+    const toolbar = element.querySelector('.toolbar') as HTMLElement;
+    const scrollContent = element.querySelector('.content-scroll') as HTMLElement;
+
+    const originalToolbarDisplay = toolbar ? toolbar.style.display : '';
+    const originalScrollPadding = scrollContent ? scrollContent.style.padding : '';
+
+    if (toolbar) toolbar.style.display = 'none';
+    if (scrollContent) scrollContent.style.padding = '0';
+
     const originalHeight = element.style.height;
     const originalOverflow = element.style.overflow;
 
     element.style.height = 'auto';
     element.style.overflow = 'visible';
 
-    // Wait a bit for layout to settle
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Wait for layout and charts to settle
+    await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#f8f9fa',
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight,
-        y: window.scrollY // Ensure we capture from current or top if needed
+        backgroundColor: '#ffffff'
       });
 
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgProps = pdf.getImageProperties(imgData);
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+
+      const margin = 15;
+      const headerHeight = 25;
+      const footerHeight = 15;
+      const printableWidth = pdfWidth - (margin * 2);
+      const printableHeight = pdfHeight - headerHeight - footerHeight - margin; // Space for content per page
+
+      const imgProps = pdf.getImageProperties(imgData);
+      const imgScaledHeight = (imgProps.height * printableWidth) / imgProps.width;
+
+      let heightLeft = imgScaledHeight;
+      let currentPosition = 0; // Position in the source image
+      let pageNumber = 1;
+
+      while (heightLeft > 0) {
+        if (pageNumber > 1) pdf.addPage();
+
+        // --- DRAW HEADER ---
+        pdf.setFillColor(248, 249, 250);
+        pdf.rect(0, 0, pdfWidth, headerHeight, 'F');
+        pdf.setTextColor(52, 71, 103);
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`REPORTE DE DASHBOARD - ${this.currentTab.toUpperCase()}`, margin, 12);
+
+        pdf.setFontSize(8);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(103, 116, 142);
+        const dateStr = new Date().toLocaleString();
+        pdf.text(`Generado el: ${dateStr}`, margin, 18);
+        pdf.setDrawColor(233, 236, 239);
+        pdf.line(margin, 20, pdfWidth - margin, 20);
+
+        // --- DRAW CONTENT SLICE ---
+        const sliceY = headerHeight + 5; // Start content below header
+
+        pdf.addImage(
+          imgData,
+          'PNG',
+          margin,
+          sliceY - currentPosition,
+          printableWidth,
+          imgScaledHeight,
+          undefined,
+          'FAST'
+        );
+
+        // --- DRAW COVER BLOCKS (to clean up overflows) ---
+        pdf.setFillColor(248, 249, 250);
+        pdf.rect(0, 0, pdfWidth, headerHeight, 'F');
+        pdf.setTextColor(52, 71, 103);
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`REPORTE DE DASHBOARD - ${this.currentTab.toUpperCase()}`, margin, 12);
+        pdf.setFontSize(8);
+        pdf.text(`Generado el: ${dateStr}`, margin, 18);
+
+        // --- DRAW FOOTER ---
+        pdf.setFillColor(255, 255, 255);
+        pdf.rect(0, pdfHeight - footerHeight, pdfWidth, footerHeight, 'F');
+        pdf.setDrawColor(233, 236, 239);
+        pdf.line(margin, pdfHeight - footerHeight, pdfWidth - margin, pdfHeight - footerHeight);
+        pdf.setTextColor(103, 116, 142);
+        pdf.setFontSize(8);
+        pdf.text(`Página ${pageNumber}`, pdfWidth / 2, pdfHeight - 7, { align: 'center' });
+        pdf.text('Factoring Softclass - Confidencial', margin, pdfHeight - 7);
+
+        currentPosition += printableHeight;
+        heightLeft -= printableHeight;
+        pageNumber++;
+      }
+
       pdf.save(`reporte_dashboard_${this.currentTab}_${new Date().getTime()}.pdf`);
     } catch (error) {
       console.error('Error generating PDF', error);
     } finally {
       // Revert styles
+      if (toolbar) toolbar.style.display = originalToolbarDisplay;
+      if (scrollContent) scrollContent.style.padding = originalScrollPadding;
       element.style.height = originalHeight;
       element.style.overflow = originalOverflow;
       this.isGeneratingPdf = false;
@@ -716,6 +1070,39 @@ export class DashboardComponent implements OnInit {
     if (this.stats.cartera.debtors) {
       this.moraChartData.labels = this.stats.cartera.debtors.map((d: any) => d.cliente || 'Otros');
       this.moraChartData.datasets[0].data = this.stats.cartera.debtors.map((d: any) => parseFloat(d.valor_mora));
+    }
+
+    // Factoring: Exposure by Payer
+    if (this.stats.factoring.exposure_by_payer) {
+      this.exposureChartData.labels = this.stats.factoring.exposure_by_payer.map((e: any) => e.pagador);
+      this.exposureChartData.datasets[0].data = this.stats.factoring.exposure_by_payer.map((e: any) => parseFloat(e.total));
+    }
+
+    // Confirming: Analysis of Emitters
+    if (this.stats.confirming.analisis_emisores) {
+      this.emitterAnalysisChartData.labels = this.stats.confirming.analisis_emisores.map((e: any) => e.emisor);
+      this.emitterAnalysisChartData.datasets[0].data = this.stats.confirming.analisis_emisores.map((e: any) => parseFloat(e.total));
+    }
+
+    // Confirming: Avg Tasa by Emisor
+    if (this.stats.confirming.tasa_media_emisor) {
+      this.emitterTasaChartData.labels = this.stats.confirming.tasa_media_emisor.map((e: any) => e.emisor);
+      this.emitterTasaChartData.datasets[0].data = this.stats.confirming.tasa_media_emisor.map((e: any) => parseFloat(e.avg_tasa));
+    }
+
+    // Pagos: Timeline
+    if (this.stats.factoring.payment_timeline) {
+      this.paymentTimelineChartData.labels = this.stats.factoring.payment_timeline.map((t: any) => {
+        const d = new Date(t.fecha);
+        return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+      });
+      this.paymentTimelineChartData.datasets[0].data = this.stats.factoring.payment_timeline.map((t: any) => parseFloat(t.total));
+    }
+
+    // Pagos: Distribution
+    if (this.stats.factoring.payment_distribution) {
+      this.paymentDistributionChartData.labels = this.stats.factoring.payment_distribution.map((d: any) => d.cliente);
+      this.paymentDistributionChartData.datasets[0].data = this.stats.factoring.payment_distribution.map((d: any) => parseFloat(d.total));
     }
   }
 
