@@ -45,8 +45,9 @@ Chart.register(...registerables);
         <div class="actions">
           <div class="tabs">
             <button (click)="currentTab = 'cartera'" [class.active]="currentTab === 'cartera'">Cartera</button>
-            <button (click)="currentTab = 'pagos'" [class.active]="currentTab === 'pagos'">Pagos & Recaudos</button>
-            <button (click)="currentTab = 'mora'" [class.active]="currentTab === 'mora'">Gestión de Mora</button>
+            <button (click)="currentTab = 'pagos'" [class.active]="currentTab === 'pagos'">Pagos</button>
+            <button (click)="currentTab = 'factoring'" [class.active]="currentTab === 'factoring'">Factoring</button>
+            <button (click)="currentTab = 'confirming'" [class.active]="currentTab === 'confirming'">Confirming</button>
           </div>
 
           <div class="btn-group">
@@ -67,7 +68,7 @@ Chart.register(...registerables);
         <div class="tab-content" *ngIf="currentTab === 'cartera'">
           <div class="kpi-grid">
             <div class="kpi-card blue clickable" (click)="navigateToSheets('cartera')">
-              <label>Clientes Únicos</label>
+              <label>Número de Clientes</label>
               <div class="value">{{ stats.cartera.unique_clients }}</div>
               <div class="sub">Movimientos/Cliente: {{ stats.cartera.movs_per_client }}</div>
             </div>
@@ -81,11 +82,63 @@ Chart.register(...registerables);
               <div class="value">{{ stats.cartera.mora_index }}%</div>
               <div class="sub">Sobre el capital total</div>
             </div>
+            <div class="kpi-card red clickable" (click)="navigateToSheets('cartera', 'mora')">
+              <label>Saldo Mora Hoy</label>
+              <div class="value">{{ stats.cartera.total_mora | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="sub">Total actualmente en mora</div>
+            </div>
           </div>
 
-          <div class="chart-row">
+          <div class="chart-row mt-4">
+            <div class="chart-container full-width">
+              <h4>Saldo de Mora por Cliente (Top 10)</h4>
+              <div class="chart-wrapper small-height">
+                <canvas baseChart
+                  [data]="moraChartData"
+                  [options]="barChartOptions"
+                  (chartClick)="onMoraChartClick($event)"
+                  [type]="'bar'">
+                </canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-section mt-4">
+            <h4>Saldos Actuales Operación (Clic para ver cliente)</h4>
+            <div class="table-card">
+              <table class="simple-table interactive">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th class="text-center">Operaciones</th>
+                    <th class="text-right">Saldo Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let c of stats.cartera.client_ranking" (click)="navigateToSheets('cartera', c.cliente)" class="row-clickable">
+                    <td>{{ c.cliente }}</td>
+                    <td class="text-center">{{ c.total_ops }}</td>
+                    <td class="text-right bold">{{ c.saldo_total | currency:'USD':'symbol':'1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="chart-row mt-4">
             <div class="chart-container">
-              <h4>Distribución por Ciudades (Clic para filtrar)</h4>
+              <h4>Actividad Económica por Saldo Capital</h4>
+              <div class="chart-wrapper">
+                <canvas baseChart
+                  [data]="activityChartData"
+                  [options]="pieChartOptions"
+                  (chartClick)="onActivityClick($event)"
+                  [type]="'doughnut'">
+                </canvas>
+              </div>
+            </div>
+            <div class="chart-container">
+              <h4>Distribución por Ciudades</h4>
               <div class="chart-wrapper">
                 <canvas baseChart
                   [data]="cityChartData"
@@ -95,12 +148,16 @@ Chart.register(...registerables);
                 </canvas>
               </div>
             </div>
-            <div class="chart-container">
+          </div>
+
+          <div class="chart-row mt-4">
+            <div class="chart-container full-width">
               <h4>Plan de Amortización (Distribución %)</h4>
-              <div class="chart-wrapper">
+              <div class="chart-wrapper small-height">
                 <canvas baseChart
                   [data]="amortChartData"
                   [options]="barChartOptions"
+                  (chartClick)="onAmortClick($event)"
                   [type]="'bar'">
                 </canvas>
               </div>
@@ -108,95 +165,126 @@ Chart.register(...registerables);
           </div>
 
           <div class="report-section mt-4">
-            <h4>Reporte de Desembolsos Diarios (Últimos 15 registros)</h4>
+            <h4>Reporte de Desembolsos Diarios</h4>
             <div class="table-card">
-              <table class="simple-table">
+              <table class="simple-table interactive">
                 <thead>
                   <tr>
                     <th>Fecha</th>
-                    <th>Total Desembolsado</th>
+                    <th>Cliente</th>
+                    <th class="text-right">Total Desembolsado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let d of stats.cartera.daily_disbursements">
-                    <td>{{ d.fecha_desembolso }}</td>
-                    <td class="bold">{{ d.total | currency:'USD':'symbol':'1.0-0' }}</td>
+                  <tr *ngFor="let d of stats.cartera.daily_disbursements" (click)="navigateToSheets('cartera', d.cliente)" class="row-clickable">
+                    <td>{{ d.fecha | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ d.cliente }}</td>
+                    <td class="text-right bold">{{ d.total | currency:'USD':'symbol':'1.0-0' }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
-        </div>
 
-        <!-- TAB: PAGOS & RECAUDOS -->
-        <div class="tab-content" *ngIf="currentTab === 'pagos'">
-          <div class="kpi-grid">
-            <div class="kpi-card purple">
-              <label>Total Recaudado</label>
-              <div class="value">{{ stats.factoring.total_collected | currency:'USD':'symbol':'1.0-0' }}</div>
-              <div class="sub">{{ stats.factoring.pagos_count }} transacciones</div>
-            </div>
-          </div>
-          
-          <div class="report-section">
-            <h4>Desglose Diario de Recaudos (Capital vs Intereses)</h4>
+          <div class="report-section mt-4">
+            <h4>Clientes con mayor deuda (Gestión de Mora)</h4>
             <div class="table-card">
-              <table class="simple-table">
-                <thead>
-                  <tr>
-                    <th>Fecha Pago</th>
-                    <th>Capital (Nominal)</th>
-                    <th>Intereses (Dcto Fin)</th>
-                    <th>Total Pagado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let p of stats.factoring.daily_payments">
-                    <td>{{ p.fecha_pago }}</td>
-                    <td>{{ p.capital | currency:'USD':'symbol':'1.0-0' }}</td>
-                    <td>{{ p.intereses | currency:'USD':'symbol':'1.0-0' }}</td>
-                    <td class="bold">{{ p.total | currency:'USD':'symbol':'1.0-0' }}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- TAB: MORA -->
-        <div class="tab-content" *ngIf="currentTab === 'mora'">
-          <div class="kpi-grid">
-            <div class="kpi-card orange">
-              <label>Mora Actual</label>
-              <div class="value">{{ stats.cartera.mora_index }}%</div>
-            </div>
-          </div>
-
-          <div class="report-section">
-            <h4>Detalle de Deudores con Saldo en Mora</h4>
-            <div class="table-card">
-              <table class="simple-table">
+              <table class="simple-table interactive">
                 <thead>
                   <tr>
                     <th>Cliente</th>
                     <th>Identificación</th>
                     <th>Días Vencido</th>
                     <th>Valor en Mora</th>
-                    <th>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let d of stats.cartera.debtors">
+                  <tr *ngFor="let d of stats.cartera.debtors" (click)="navigateToSheets('cartera', d.cliente)" class="row-clickable">
                     <td>{{ d.cliente }}</td>
                     <td>{{ d.identificacion }}</td>
                     <td><span class="badge warning">{{ d.dias_vencido }} días</span></td>
                     <td class="danger bold">{{ d.valor_mora | currency:'USD':'symbol':'1.0-0' }}</td>
-                    <td>
-                      <button class="btn-small" (click)="navigateToSheets('cartera', d.cliente)">Ver Historial</button>
-                    </td>
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: PAGOS -->
+        <div class="tab-content" *ngIf="currentTab === 'pagos'">
+          <div class="kpi-grid">
+            <div class="kpi-card green">
+              <label>Registros de Pago</label>
+              <div class="value">{{ stats.factoring.pagos_count }}</div>
+              <div class="sub">Total recaudos aplicados</div>
+            </div>
+            <div class="kpi-card blue">
+              <label>Total Recaudado</label>
+              <div class="value">{{ stats.factoring.total_collected | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="sub">Capital + Intereses recibidos</div>
+            </div>
+          </div>
+
+          <div class="report-section mt-4">
+            <h4>Desglose de Pagos Diarios (Capital vs Intereses)</h4>
+            <div class="table-card">
+              <table class="simple-table interactive">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Cliente</th>
+                    <th class="text-right">Capital</th>
+                    <th class="text-right">Intereses</th>
+                    <th class="text-right">Total Pagado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of stats.factoring.daily_payments" (click)="navigateToSheets('pagos', p.cliente)" class="row-clickable">
+                    <td>{{ p.fecha | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ p.cliente }}</td>
+                    <td class="text-right">{{ p.capital | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td class="text-right">{{ p.intereses | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td class="text-right bold blue-text">{{ p.total | currency:'USD':'symbol':'1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: FACTORING -->
+        <div class="tab-content" *ngIf="currentTab === 'factoring'">
+          <div class="kpi-grid">
+            <div class="kpi-card blue">
+              <label>Operaciones Activas</label>
+              <div class="value">{{ stats.factoring.op_count }}</div>
+            </div>
+            <div class="kpi-card green">
+              <label>Exposición Total</label>
+              <div class="value">{{ stats.factoring.exposure | currency:'USD':'symbol':'1.0-0' }}</div>
+            </div>
+            <div class="kpi-card purple">
+              <label>Tasa Promedio</label>
+              <div class="value">{{ stats.factoring.avg_tasa }}%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: CONFIRMING -->
+        <div class="tab-content" *ngIf="currentTab === 'confirming'">
+          <div class="kpi-grid">
+            <div class="kpi-card blue">
+              <label>Documentos</label>
+              <div class="value">{{ stats.confirming.count }}</div>
+            </div>
+            <div class="kpi-card green">
+              <label>Saldo en Confirming</label>
+              <div class="value">{{ stats.confirming.total_val | currency:'USD':'symbol':'1.0-0' }}</div>
+            </div>
+            <div class="kpi-card purple">
+              <label>Tasa Media Factor</label>
+              <div class="value">{{ stats.confirming.avg_tasa }}%</div>
             </div>
           </div>
         </div>
@@ -354,11 +442,18 @@ Chart.register(...registerables);
       &.blue::before { background: #5e72e4; }
       &.green::before { background: #2dce89; }
       &.orange::before { background: #fb6340; }
+      &.red::before { background: #f5365c; }
       &.purple::before { background: #8965e0; }
 
-      label { font-size: 0.7rem; font-weight: 700; color: #adb5bd; text-transform: uppercase; }
-      .value { font-size: 1.8rem; font-weight: 800; color: #32325d; margin: 0.4rem 0; }
-      .sub { font-size: 0.75rem; color: #8898aa; }
+      label { font-size: 0.65rem; font-weight: 700; color: #adb5bd; text-transform: uppercase; letter-spacing: 0.5px; }
+      .value { 
+        font-size: 1.4rem; 
+        font-weight: 800; 
+        color: #32325d; 
+        margin: 0.4rem 0;
+        display: block;
+      }
+      .sub { font-size: 0.7rem; color: #8898aa; }
     }
 
     .chart-row {
@@ -399,6 +494,23 @@ Chart.register(...registerables);
       
       .bold { font-weight: 700; color: #32325d; }
       .danger { color: #f5365c; }
+      .blue-text { color: #5e72e4; }
+
+      &.interactive {
+        tr.row-clickable {
+          cursor: pointer;
+          transition: background 0.2s;
+          &:hover { background: #f1f5f9; }
+        }
+      }
+    }
+
+    .chart-container.full-width {
+      grid-column: 1 / -1;
+    }
+    
+    .small-height {
+      height: 200px !important;
     }
 
     .badge {
@@ -408,6 +520,9 @@ Chart.register(...registerables);
       font-weight: 700;
       &.warning { background: #fff3e0; color: #ff9800; }
     }
+
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
 
     .btn-small {
       background: #f8f9fa;
@@ -455,6 +570,12 @@ export class DashboardComponent implements OnInit {
   filterFechaFin: string = '';
   filterCliente: string = '';
 
+  // Chart: Actividad
+  public activityChartData: ChartData<'doughnut'> = {
+    labels: [],
+    datasets: [{ data: [], backgroundColor: ['#5e72e4', '#2dce89', '#fb6340', '#11cdef', '#f5365c', '#8965e0', '#ffd600'] }]
+  };
+
   // Chart: Ciudades
   public cityChartData: ChartData<'doughnut'> = {
     labels: [],
@@ -469,6 +590,18 @@ export class DashboardComponent implements OnInit {
       label: 'Frecuencia de Plan',
       backgroundColor: 'rgba(94, 114, 228, 0.6)',
       borderColor: '#5e72e4',
+      borderWidth: 1
+    }]
+  };
+
+  // Chart: Mora
+  public moraChartData: ChartData<'bar'> = {
+    labels: [],
+    datasets: [{
+      data: [],
+      label: 'Saldo en Mora',
+      backgroundColor: 'rgba(245, 54, 92, 0.6)',
+      borderColor: '#f5365c',
       borderWidth: 1
     }]
   };
@@ -561,19 +694,59 @@ export class DashboardComponent implements OnInit {
   updateCharts() {
     if (!this.stats) return;
 
+    // Activity Distribution
+    if (this.stats.cartera.actividad) {
+      this.activityChartData.labels = this.stats.cartera.actividad.map((a: any) => a.sector_economico || 'Otros');
+      this.activityChartData.datasets[0].data = this.stats.cartera.actividad.map((a: any) => parseFloat(a.total));
+    }
+
     // Cities
     this.cityChartData.labels = this.stats.cartera.ciudades.map((c: any) => c.ciudad || 'Desconocida');
     this.cityChartData.datasets[0].data = this.stats.cartera.ciudades.map((c: any) => parseFloat(c.total));
 
     // Amortization
-    this.amortChartData.labels = this.stats.cartera.amortizacion.map((a: any) => a.plan_amortizacion || 'N/A');
-    this.amortChartData.datasets[0].data = this.stats.cartera.amortizacion.map((a: any) => a.count);
+    const amort = this.stats.cartera.amortizacion;
+    if (amort) {
+      const total = amort.reduce((sum: number, a: any) => sum + (a.count || 0), 0);
+      this.amortChartData.labels = amort.map((a: any) => a.plan_amortizacion || 'N/A');
+      this.amortChartData.datasets[0].data = amort.map((a: any) => total > 0 ? (a.count / total * 100).toFixed(1) : 0);
+    }
+
+    // Mora Chart
+    if (this.stats.cartera.debtors) {
+      this.moraChartData.labels = this.stats.cartera.debtors.map((d: any) => d.cliente || 'Otros');
+      this.moraChartData.datasets[0].data = this.stats.cartera.debtors.map((d: any) => parseFloat(d.valor_mora));
+    }
   }
 
   onCityClick(event: any) {
     if (event.active && event.active.length > 0) {
       const index = event.active[0].index;
       const label = this.cityChartData.labels![index] as string;
+      this.navigateToSheets('cartera', label);
+    }
+  }
+
+  onActivityClick(event: any) {
+    if (event.active && event.active.length > 0) {
+      const index = event.active[0].index;
+      const label = this.activityChartData.labels![index] as string;
+      this.navigateToSheets('cartera', label);
+    }
+  }
+
+  onAmortClick(event: any) {
+    if (event.active && event.active.length > 0) {
+      const index = event.active[0].index;
+      const label = this.amortChartData.labels![index] as string;
+      this.navigateToSheets('cartera', label);
+    }
+  }
+
+  onMoraChartClick(event: any) {
+    if (event.active && event.active.length > 0) {
+      const index = event.active[0].index;
+      const label = this.moraChartData.labels![index] as string;
       this.navigateToSheets('cartera', label);
     }
   }
