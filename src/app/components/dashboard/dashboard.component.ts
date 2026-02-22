@@ -106,22 +106,51 @@ Chart.register(...registerables);
           <div class="report-section mt-4">
             <h4>Saldos Actuales Operación (Clic para ver cliente)</h4>
             <div class="table-card">
+              <!-- Search & Page Size -->
+              <div class="table-header-actions">
+                <div class="table-search">
+                  <input type="text" [(ngModel)]="tableSettings.carteraRanking.search" placeholder="Filtro rápido...">
+                </div>
+                <div class="rows-per-page">
+                  <label>Mostrar:</label>
+                  <select [(ngModel)]="tableSettings.carteraRanking.pageSize">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="all">Todos</option>
+                  </select>
+                </div>
+              </div>
+
               <table class="simple-table interactive">
                 <thead>
                   <tr>
                     <th>Cliente</th>
+                    <th>Identificación</th>
                     <th class="text-center">Operaciones</th>
                     <th class="text-right">Saldo Total</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let c of stats.cartera.client_ranking" (click)="navigateToSheets('cartera', c.cliente)" class="row-clickable">
+                  <tr *ngFor="let c of getProcessedData(stats.cartera.client_ranking, 'carteraRanking').items" (click)="navigateToSheets('cartera', c.cliente)" class="row-clickable">
                     <td>{{ c.cliente }}</td>
+                    <td>{{ c.identificacion }}</td>
                     <td class="text-center">{{ c.total_ops }}</td>
                     <td class="text-right bold">{{ c.saldo_total | currency:'USD':'symbol':'1.0-0' }}</td>
                   </tr>
                 </tbody>
               </table>
+
+              <!-- Paginator -->
+              <div class="table-footer-pagination" *ngIf="tableSettings.carteraRanking.pageSize !== 'all'">
+                <span>Total: {{ getProcessedData(stats.cartera.client_ranking, 'carteraRanking').total }}</span>
+                <div class="pagination-controls">
+                  <button (click)="changePage('carteraRanking', -1)" [disabled]="tableSettings.carteraRanking.page <= 1">Ant.</button>
+                  <span>Pág. {{ tableSettings.carteraRanking.page }} de {{ getProcessedData(stats.cartera.client_ranking, 'carteraRanking').pages }}</span>
+                  <button (click)="changePage('carteraRanking', 1)" [disabled]="tableSettings.carteraRanking.page >= getProcessedData(stats.cartera.client_ranking, 'carteraRanking').pages">Sig.</button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -167,28 +196,71 @@ Chart.register(...registerables);
           <div class="report-section mt-4">
             <h4>Reporte de Desembolsos Diarios</h4>
             <div class="table-card">
+              <div class="table-header-actions">
+                <div class="table-search">
+                  <input type="text" [(ngModel)]="tableSettings.carteraDaily.search" placeholder="Filtro rápido...">
+                </div>
+                <div class="rows-per-page">
+                  <label>Mostrar:</label>
+                  <select [(ngModel)]="tableSettings.carteraDaily.pageSize">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="all">Todos</option>
+                  </select>
+                </div>
+              </div>
+
               <table class="simple-table interactive">
                 <thead>
                   <tr>
                     <th>Fecha</th>
                     <th>Cliente</th>
+                    <th>Identificación</th>
                     <th class="text-right">Total Desembolsado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let d of stats.cartera.daily_disbursements" (click)="navigateToSheets('cartera', d.cliente)" class="row-clickable">
+                  <tr *ngFor="let d of getProcessedData(stats.cartera.daily_disbursements, 'carteraDaily').items" (click)="navigateToSheets('cartera', d.cliente)" class="row-clickable">
                     <td>{{ d.fecha | date:'dd/MM/yyyy' }}</td>
                     <td>{{ d.cliente }}</td>
+                    <td>{{ d.identificacion }}</td>
                     <td class="text-right bold">{{ d.total | currency:'USD':'symbol':'1.0-0' }}</td>
                   </tr>
                 </tbody>
               </table>
+
+              <div class="table-footer-pagination" *ngIf="tableSettings.carteraDaily.pageSize !== 'all'">
+                <span>Total: {{ getProcessedData(stats.cartera.daily_disbursements, 'carteraDaily').total }}</span>
+                <div class="pagination-controls">
+                  <button (click)="changePage('carteraDaily', -1)" [disabled]="tableSettings.carteraDaily.page <= 1">Ant.</button>
+                  <span>Pág. {{ tableSettings.carteraDaily.page }} de {{ getProcessedData(stats.cartera.daily_disbursements, 'carteraDaily').pages }}</span>
+                  <button (click)="changePage('carteraDaily', 1)" [disabled]="tableSettings.carteraDaily.page >= getProcessedData(stats.cartera.daily_disbursements, 'carteraDaily').pages">Sig.</button>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="report-section mt-4">
             <h4>Clientes con mayor deuda (Gestión de Mora)</h4>
             <div class="table-card">
+              <div class="table-header-actions">
+                <div class="table-search">
+                  <input type="text" [(ngModel)]="tableSettings.carteraDebtors.search" placeholder="Buscar por cliente o ID...">
+                </div>
+                <div class="rows-per-page">
+                  <label>Mostrar:</label>
+                  <select [(ngModel)]="tableSettings.carteraDebtors.pageSize">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="all">Todos</option>
+                  </select>
+                </div>
+              </div>
+
               <table class="simple-table interactive">
                 <thead>
                   <tr>
@@ -196,17 +268,32 @@ Chart.register(...registerables);
                     <th>Identificación</th>
                     <th>Días Vencido</th>
                     <th>Valor en Mora</th>
+                    <th>Detalles</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let d of stats.cartera.debtors" (click)="navigateToSheets('cartera', d.cliente)" class="row-clickable">
+                  <tr *ngFor="let d of getProcessedData(stats.cartera.debtors, 'carteraDebtors').items" (click)="navigateToSheets('cartera', d.cliente)" class="row-clickable">
                     <td>{{ d.cliente }}</td>
                     <td>{{ d.identificacion }}</td>
                     <td><span class="badge warning">{{ d.dias_vencido }} días</span></td>
                     <td class="danger bold">{{ d.valor_mora | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td class="x-small-text">
+                      <div *ngFor="let det of d.detalles" class="detail-item">
+                        Op {{ det.operacion }}: <span class="bold">{{ det.valor_mora | currency:'USD':'symbol':'1.0-0' }}</span>
+                      </div>
+                    </td>
                   </tr>
                 </tbody>
               </table>
+
+              <div class="table-footer-pagination" *ngIf="tableSettings.carteraDebtors.pageSize !== 'all'">
+                <span>Total: {{ getProcessedData(stats.cartera.debtors, 'carteraDebtors').total }}</span>
+                <div class="pagination-controls">
+                  <button (click)="changePage('carteraDebtors', -1)" [disabled]="tableSettings.carteraDebtors.page <= 1">Ant.</button>
+                  <span>Pág. {{ tableSettings.carteraDebtors.page }} de {{ getProcessedData(stats.cartera.debtors, 'carteraDebtors').pages }}</span>
+                  <button (click)="changePage('carteraDebtors', 1)" [disabled]="tableSettings.carteraDebtors.page >= getProcessedData(stats.cartera.debtors, 'carteraDebtors').pages">Sig.</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -258,24 +345,51 @@ Chart.register(...registerables);
           <div class="report-section mt-4">
             <h4>Registro de pagos</h4>
             <div class="table-card no-shadow">
+              <div class="table-header-actions">
+                <div class="table-search">
+                  <input type="text" [(ngModel)]="tableSettings.pagosEntries.search" placeholder="Filtro rápido...">
+                </div>
+                <div class="rows-per-page">
+                  <label>Mostrar:</label>
+                  <select [(ngModel)]="tableSettings.pagosEntries.pageSize">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="all">Todos</option>
+                  </select>
+                </div>
+              </div>
+
               <table class="simple-table interactive x-small">
                 <thead>
                   <tr>
                     <th>Cliente</th>
+                    <th>ID</th>
                     <th>Factura Nro</th>
                     <th>Dias Cartera</th>
                     <th class="text-right">Monto Pagado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let p of stats.factoring.payment_entries" class="row-clickable">
+                  <tr *ngFor="let p of getProcessedData(stats.factoring.payment_entries, 'pagosEntries').items" class="row-clickable">
                     <td>{{ p.cliente }}</td>
+                    <td>{{ p.identificacion || p.nit_cliente }}</td>
                     <td>{{ p.factura_nro }}</td>
                     <td>{{ p.dias_cartera }}</td>
                     <td class="text-right bold">{{ p.monto_pagado | currency:'USD':'symbol':'1.0-0' }}</td>
                   </tr>
                 </tbody>
               </table>
+
+              <div class="table-footer-pagination" *ngIf="tableSettings.pagosEntries.pageSize !== 'all'">
+                <span>Total: {{ getProcessedData(stats.factoring.payment_entries, 'pagosEntries').total }}</span>
+                <div class="pagination-controls">
+                  <button (click)="changePage('pagosEntries', -1)" [disabled]="tableSettings.pagosEntries.page <= 1">Ant.</button>
+                  <span>Pág. {{ tableSettings.pagosEntries.page }} de {{ getProcessedData(stats.factoring.payment_entries, 'pagosEntries').pages }}</span>
+                  <button (click)="changePage('pagosEntries', 1)" [disabled]="tableSettings.pagosEntries.page >= getProcessedData(stats.factoring.payment_entries, 'pagosEntries').pages">Sig.</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -336,6 +450,22 @@ Chart.register(...registerables);
           <div class="report-section mt-4">
             <h4>Vencimientos Factoring</h4>
             <div class="table-card">
+              <div class="table-header-actions">
+                <div class="table-search">
+                  <input type="text" [(ngModel)]="tableSettings.factoringVencimientos.search" placeholder="Buscar pagador...">
+                </div>
+                <div class="rows-per-page">
+                  <label>Mostrar:</label>
+                  <select [(ngModel)]="tableSettings.factoringVencimientos.pageSize">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="all">Todos</option>
+                  </select>
+                </div>
+              </div>
+
               <table class="simple-table interactive">
                 <thead>
                   <tr>
@@ -347,7 +477,7 @@ Chart.register(...registerables);
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let v of stats.factoring.vencimientos" class="row-clickable">
+                  <tr *ngFor="let v of getProcessedData(stats.factoring.vencimientos, 'factoringVencimientos').items" class="row-clickable">
                     <td>{{ v.pagador }}</td>
                     <td>{{ v.fecha | date:'dd/MM/yyyy' }}</td>
                     <td class="text-right bold">{{ v.monto | currency:'USD':'symbol':'1.0-0' }}</td>
@@ -362,6 +492,15 @@ Chart.register(...registerables);
                   </tr>
                 </tbody>
               </table>
+
+              <div class="table-footer-pagination" *ngIf="tableSettings.factoringVencimientos.pageSize !== 'all'">
+                <span>Total: {{ getProcessedData(stats.factoring.vencimientos, 'factoringVencimientos').total }}</span>
+                <div class="pagination-controls">
+                  <button (click)="changePage('factoringVencimientos', -1)" [disabled]="tableSettings.factoringVencimientos.page <= 1">Ant.</button>
+                  <span>Pág. {{ tableSettings.factoringVencimientos.page }} de {{ getProcessedData(stats.factoring.vencimientos, 'factoringVencimientos').pages }}</span>
+                  <button (click)="changePage('factoringVencimientos', 1)" [disabled]="tableSettings.factoringVencimientos.page >= getProcessedData(stats.factoring.vencimientos, 'factoringVencimientos').pages">Sig.</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -397,6 +536,20 @@ Chart.register(...registerables);
             <div class="chart-container">
               <h4>Tabla de Vencimientos y Días</h4>
               <div class="table-card no-shadow">
+                <div class="table-header-actions">
+                  <div class="table-search">
+                    <input type="text" [(ngModel)]="tableSettings.confirmingVencimientos.search" placeholder="Filtro rápido...">
+                  </div>
+                  <div class="rows-per-page">
+                    <select [(ngModel)]="tableSettings.confirmingVencimientos.pageSize">
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="all">Todo</option>
+                    </select>
+                  </div>
+                </div>
+
                 <table class="simple-table interactive x-small">
                   <thead>
                     <tr>
@@ -407,7 +560,7 @@ Chart.register(...registerables);
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let v of stats.confirming.vencimientos" class="row-clickable">
+                    <tr *ngFor="let v of getProcessedData(stats.confirming.vencimientos, 'confirmingVencimientos').items" class="row-clickable">
                       <td>{{ v.id_titulo }}</td>
                       <td>{{ v.emisor }}</td>
                       <td>{{ v.fecha_final | date:'dd MMM yyyy' }}</td>
@@ -415,6 +568,14 @@ Chart.register(...registerables);
                     </tr>
                   </tbody>
                 </table>
+
+                <div class="table-footer-pagination" *ngIf="tableSettings.confirmingVencimientos.pageSize !== 'all'">
+                  <div class="pagination-controls">
+                    <button (click)="changePage('confirmingVencimientos', -1)" [disabled]="tableSettings.confirmingVencimientos.page <= 1"> < </button>
+                    <span>{{ tableSettings.confirmingVencimientos.page }} / {{ getProcessedData(stats.confirming.vencimientos, 'confirmingVencimientos').pages }}</span>
+                    <button (click)="changePage('confirmingVencimientos', 1)" [disabled]="tableSettings.confirmingVencimientos.page >= getProcessedData(stats.confirming.vencimientos, 'confirmingVencimientos').pages"> > </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -433,6 +594,20 @@ Chart.register(...registerables);
             <div class="chart-container">
               <h4>Rendimientos por Emisor</h4>
               <div class="table-card no-shadow">
+                <div class="table-header-actions">
+                  <div class="table-search">
+                    <input type="text" [(ngModel)]="tableSettings.confirmingRendimientos.search" placeholder="Filtro rápido...">
+                  </div>
+                  <div class="rows-per-page">
+                    <select [(ngModel)]="tableSettings.confirmingRendimientos.pageSize">
+                      <option value="5">5</option>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="all">Todo</option>
+                    </select>
+                  </div>
+                </div>
+
                 <table class="simple-table interactive x-small">
                   <thead>
                     <tr>
@@ -442,13 +617,21 @@ Chart.register(...registerables);
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let r of stats.confirming.rendimientos_emisor" class="row-clickable">
+                    <tr *ngFor="let r of getProcessedData(stats.confirming.rendimientos_emisor, 'confirmingRendimientos').items" class="row-clickable">
                       <td>{{ r.emisor }}</td>
                       <td class="text-right">{{ r.valor_nominal | currency:'USD':'symbol':'1.0-0' }}</td>
                       <td class="text-right bold blue-text">{{ r.rendimientos | currency:'USD':'symbol':'1.0-0' }}</td>
                     </tr>
                   </tbody>
                 </table>
+
+                <div class="table-footer-pagination" *ngIf="tableSettings.confirmingRendimientos.pageSize !== 'all'">
+                  <div class="pagination-controls">
+                    <button (click)="changePage('confirmingRendimientos', -1)" [disabled]="tableSettings.confirmingRendimientos.page <= 1"> < </button>
+                    <span>{{ tableSettings.confirmingRendimientos.page }} / {{ getProcessedData(stats.confirming.rendimientos_emisor, 'confirmingRendimientos').pages }}</span>
+                    <button (click)="changePage('confirmingRendimientos', 1)" [disabled]="tableSettings.confirmingRendimientos.page >= getProcessedData(stats.confirming.rendimientos_emisor, 'confirmingRendimientos').pages"> > </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -768,6 +951,88 @@ Chart.register(...registerables);
     }
 
     .mt-4 { margin-top: 2rem; }
+    
+    .x-small-text {
+      font-size: 0.65rem;
+      line-height: 1.2;
+      color: #67748e;
+    }
+    
+    .detail-item {
+      padding: 2px 0;
+      border-bottom: 1px dashed #eee;
+      &:last-child { border-bottom: none; }
+    }
+
+    /* Paginator & Search Styles */
+    .table-header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      gap: 1rem;
+      
+      .table-search {
+        flex-grow: 1;
+        max-width: 300px;
+        position: relative;
+        input {
+          width: 100%;
+          padding: 6px 12px;
+          border-radius: 8px;
+          border: 1px solid #e9ecef;
+          font-size: 0.8rem;
+          outline: none;
+          &:focus { border-color: #5e72e4; }
+        }
+      }
+    }
+
+    .table-footer-pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      padding-top: 10px;
+      border-top: 1px solid #f8f9fa;
+      font-size: 0.75rem;
+      color: #67748e;
+
+      .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        
+        button {
+          background: white;
+          border: 1px solid #e9ecef;
+          padding: 4px 10px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-weight: 600;
+          color: #344767;
+          &:disabled { opacity: 0.5; cursor: not-allowed; }
+          &:not(:disabled):hover { background: #f8f9fa; border-color: #5e72e4; }
+        }
+        
+        span { font-weight: 600; color: #344767; }
+      }
+
+      .rows-per-page {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        select {
+          padding: 4px 8px;
+          border-radius: 6px;
+          border: 1px solid #e9ecef;
+          outline: none;
+          font-size: 0.75rem;
+          cursor: pointer;
+          &:focus { border-color: #5e72e4; }
+        }
+      }
+    }
   `]
 })
 export class DashboardComponent implements OnInit {
@@ -779,6 +1044,16 @@ export class DashboardComponent implements OnInit {
   isGeneratingPdf = false;
   stats: any = null;
   private apiUrl = 'http://localhost:8000/api/dashboard/stats';
+  // Pagination & Search States
+  tableSettings: any = {
+    carteraRanking: { page: 1, pageSize: 5, search: '' },
+    carteraDaily: { page: 1, pageSize: 5, search: '' },
+    carteraDebtors: { page: 1, pageSize: 5, search: '' },
+    pagosEntries: { page: 1, pageSize: 5, search: '' },
+    factoringVencimientos: { page: 1, pageSize: 5, search: '' },
+    confirmingVencimientos: { page: 1, pageSize: 5, search: '' },
+    confirmingRendimientos: { page: 1, pageSize: 5, search: '' }
+  };
 
   // Filters
   filterFechaInicio: string = '';
@@ -1145,5 +1420,42 @@ export class DashboardComponent implements OnInit {
         q: filterText
       }
     });
+  }
+
+  // Data Processing Helpers
+  getProcessedData(data: any[], settingsKey: string) {
+    if (!data) return { items: [], total: 0, pages: 1 };
+
+    const settings = this.tableSettings[settingsKey];
+
+    // 1. Search
+    let filtered = data;
+    if (settings.search) {
+      const term = settings.search.toLowerCase();
+      filtered = data.filter(item => {
+        return Object.values(item).some(val =>
+          val !== null && val !== undefined && String(val).toLowerCase().includes(term)
+        );
+      });
+    }
+
+    // 2. Pagination
+    const total = filtered.length;
+    const pageSize = settings.pageSize === 'all' ? total : parseInt(settings.pageSize);
+    const pages = Math.ceil(total / pageSize) || 1;
+
+    // Adjust current page if out of bounds
+    if (settings.page > pages) settings.page = pages;
+    if (settings.page < 1) settings.page = 1;
+
+    const start = (settings.page - 1) * pageSize;
+    const items = settings.pageSize === 'all' ? filtered : filtered.slice(start, start + pageSize);
+
+    return { items, total, pages };
+  }
+
+  changePage(settingsKey: string, delta: number) {
+    const settings = this.tableSettings[settingsKey];
+    settings.page += delta;
   }
 }
