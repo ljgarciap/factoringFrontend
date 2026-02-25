@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-logs',
@@ -276,8 +277,7 @@ export class LogsComponent implements OnInit {
   totalItems: number = 0;
   perPage: number = 5;
 
-  // TODO: Use environment variable instead of hardcoded URL in production
-  private apiUrl = 'http://localhost:8000/api/logs';
+  private apiUrl = `${environment.apiUrl}/logs`;
 
   constructor(private http: HttpClient) { }
 

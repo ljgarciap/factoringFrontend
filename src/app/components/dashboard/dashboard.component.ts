@@ -8,6 +8,8 @@ import { ChartConfiguration, ChartData, ChartType, Chart, registerables } from '
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+import { environment } from '../../../environments/environment';
+
 // Register all Chart.js components
 Chart.register(...registerables);
 
@@ -1043,7 +1045,7 @@ export class DashboardComponent implements OnInit {
   isLoading = true;
   isGeneratingPdf = false;
   stats: any = null;
-  private apiUrl = 'http://localhost:8000/api/dashboard/stats';
+  private apiUrl = `${environment.apiUrl}/dashboard/stats`;
   // Pagination & Search States
   tableSettings: any = {
     carteraRanking: { page: 1, pageSize: 5, search: '' },

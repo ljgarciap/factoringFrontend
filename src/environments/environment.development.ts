@@ -1,5 +1,5 @@
 export const environment = {
-    production: false,
-    //n8nWebhookUrl: 'https://n8n.softclass.online/webhook/factoring-upload'
-    n8nWebhookUrl: 'http://localhost:5678/webhook/factoring-upload'
+  production: false,
+  apiUrl: 'http://localhost:8000/api',
+  n8nWebhookUrl: 'http://localhost:5678/webhook/factoring-upload'
 };

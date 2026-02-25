@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-sheets',
@@ -564,8 +565,7 @@ export class SheetsComponent implements OnInit {
   totalItems: number = 0;
   perPage: number = 5;
 
-  // TODO: Use environment variable instead of hardcoded URL in production
-  private baseUrl = 'http://localhost:8000/api';
+  private baseUrl = environment.apiUrl;
 
   private routeSub!: Subscription;
 
