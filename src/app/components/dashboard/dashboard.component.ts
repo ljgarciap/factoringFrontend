@@ -67,7 +67,7 @@ Chart.register(...registerables);
       <div class="content-scroll" *ngIf="!isLoading && stats">
         
         <!-- TAB: CARTERA -->
-        <div class="tab-content" *ngIf="currentTab === 'cartera'">
+        <div class="tab-content" *ngIf="currentTab === 'cartera' && stats.cartera">
           <div class="kpi-grid">
             <div class="kpi-card blue clickable" (click)="navigateToSheets('cartera')">
               <label>Número de Clientes</label>
@@ -301,7 +301,7 @@ Chart.register(...registerables);
         </div>
 
         <!-- TAB: PAGOS -->
-        <div class="tab-content" *ngIf="currentTab === 'pagos'">
+        <div class="tab-content" *ngIf="currentTab === 'pagos' && stats.factoring">
           <div class="kpi-grid">
             <div class="kpi-card blue">
               <label>Total Recaudado</label>
@@ -397,7 +397,7 @@ Chart.register(...registerables);
         </div>
 
         <!-- TAB: FACTORING -->
-        <div class="tab-content" *ngIf="currentTab === 'factoring'">
+        <div class="tab-content" *ngIf="currentTab === 'factoring' && stats.factoring">
           <div class="kpi-grid">
             <div class="kpi-card blue">
               <label>Volumen Total Financiado</label>
@@ -508,7 +508,7 @@ Chart.register(...registerables);
         </div>
 
         <!-- TAB: CONFIRMING -->
-        <div class="tab-content" *ngIf="currentTab === 'confirming'">
+        <div class="tab-content" *ngIf="currentTab === 'confirming' && stats.confirming">
           <div class="kpi-grid">
             <div class="kpi-card blue">
               <label>Valor Nominal Total</label>
