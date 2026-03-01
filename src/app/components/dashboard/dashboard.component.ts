@@ -1505,4 +1505,26 @@ export class DashboardComponent implements OnInit {
       maximumFractionDigits: 0
     }).format(num);
   }
+
+  safeDate(value: any, format: string): string {
+    if (!value || value === '0000-00-00' || value === '0000-00-00 00:00:00') return '-';
+    try {
+      const date = new Date(value);
+      if (isNaN(date.getTime())) return '-';
+
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+
+      if (format === 'dd/MM/yyyy') {
+        return `${day}/${month}/${year}`;
+      } else if (format === 'dd MMM yyyy') {
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        return `${day} ${months[date.getMonth()]} ${year}`;
+      }
+      return value;
+    } catch (e) {
+      return '-';
+    }
+  }
 }
