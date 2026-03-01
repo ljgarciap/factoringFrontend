@@ -76,7 +76,7 @@ Chart.register(...registerables);
             </div>
             <div class="kpi-card green clickable" (click)="navigateToSheets('cartera')">
               <label>Saldo Capital</label>
-              <div class="value">{{ stats.cartera.saldo_capital | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.cartera.saldo_capital) }}</div>
               <div class="sub">Total en cartera activa</div>
             </div>
             <div class="kpi-card orange">
@@ -86,7 +86,7 @@ Chart.register(...registerables);
             </div>
             <div class="kpi-card red clickable" (click)="navigateToSheets('cartera', 'mora')">
               <label>Saldo Mora Hoy</label>
-              <div class="value">{{ stats.cartera.total_mora | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.cartera.total_mora) }}</div>
               <div class="sub">Total actualmente en mora</div>
             </div>
           </div>
@@ -139,7 +139,7 @@ Chart.register(...registerables);
                     <td>{{ c.cliente }}</td>
                     <td>{{ c.identificacion }}</td>
                     <td class="text-center">{{ c.total_ops }}</td>
-                    <td class="text-right bold">{{ c.saldo_total | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td class="text-right bold">{{ formatMoney(c.saldo_total) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -228,7 +228,7 @@ Chart.register(...registerables);
                     <td>{{ d.fecha | date:'dd/MM/yyyy' }}</td>
                     <td>{{ d.cliente }}</td>
                     <td>{{ d.identificacion }}</td>
-                    <td class="text-right bold">{{ d.total | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td class="text-right bold">{{ formatMoney(d.total) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -278,10 +278,10 @@ Chart.register(...registerables);
                     <td>{{ d.cliente }}</td>
                     <td>{{ d.identificacion }}</td>
                     <td><span class="badge warning">{{ d.dias_vencido }} días</span></td>
-                    <td class="danger bold">{{ d.valor_mora | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td class="danger bold">{{ formatMoney(d.valor_mora) }}</td>
                     <td class="x-small-text">
                       <div *ngFor="let det of d.detalles" class="detail-item">
-                        Op {{ det.operacion }}: <span class="bold">{{ det.valor_mora | currency:'USD':'symbol':'1.0-0' }}</span>
+                        Op {{ det.operacion }}: <span class="bold">{{ formatMoney(det.valor_mora) }}</span>
                       </div>
                     </td>
                   </tr>
@@ -305,7 +305,7 @@ Chart.register(...registerables);
           <div class="kpi-grid">
             <div class="kpi-card blue">
               <label>Total Recaudado</label>
-              <div class="value">{{ stats.factoring.total_collected | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.factoring.total_collected) }}</div>
             </div>
             <div class="kpi-card green">
               <label>Eficiencia de Cobro (días)</label>
@@ -313,11 +313,11 @@ Chart.register(...registerables);
             </div>
             <div class="kpi-card orange">
               <label>Costo de Pronto Pago</label>
-              <div class="value">{{ stats.factoring.early_payment_cost | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.factoring.early_payment_cost) }}</div>
             </div>
             <div class="kpi-card purple">
               <label>Saldos Pendientes</label>
-              <div class="value">{{ stats.factoring.outstanding_balance | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.factoring.outstanding_balance) }}</div>
             </div>
           </div>
 
@@ -379,7 +379,7 @@ Chart.register(...registerables);
                     <td>{{ p.identificacion || p.nit_cliente }}</td>
                     <td>{{ p.factura_nro }}</td>
                     <td>{{ p.dias_cartera }}</td>
-                    <td class="text-right bold">{{ p.monto_pagado | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td class="text-right bold">{{ formatMoney(p.monto_pagado) }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -401,15 +401,15 @@ Chart.register(...registerables);
           <div class="kpi-grid">
             <div class="kpi-card blue">
               <label>Volumen Total Financiado</label>
-              <div class="value">{{ stats.factoring.volumen_total | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.factoring.volumen_total) }}</div>
             </div>
             <div class="kpi-card green">
               <label>Valor Desembolsado</label>
-              <div class="value">{{ stats.factoring.valor_desembolsado | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.factoring.valor_desembolsado) }}</div>
             </div>
             <div class="kpi-card orange">
               <label>Valor Reserva</label>
-              <div class="value">{{ stats.factoring.valor_reserva | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.factoring.valor_reserva) }}</div>
             </div>
             <div class="kpi-card purple">
               <label>Margen de Descuento</label>
@@ -482,7 +482,7 @@ Chart.register(...registerables);
                   <tr *ngFor="let v of getProcessedData(stats.factoring.vencimientos, 'factoringVencimientos').items" class="row-clickable">
                     <td>{{ v.pagador }}</td>
                     <td>{{ v.fecha | date:'dd/MM/yyyy' }}</td>
-                    <td class="text-right bold">{{ v.monto | currency:'USD':'symbol':'1.0-0' }}</td>
+                    <td class="text-right bold">{{ formatMoney(v.monto) }}</td>
                     <td>
                       <span class="badge" [ngClass]="{
                         'danger': v.estado === 'Vencido',
@@ -512,15 +512,15 @@ Chart.register(...registerables);
           <div class="kpi-grid">
             <div class="kpi-card blue">
               <label>Valor Nominal Total</label>
-              <div class="value">{{ stats.confirming.total_val | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.confirming.total_val) }}</div>
             </div>
             <div class="kpi-card green">
               <label>Rendimientos Proyectados</label>
-              <div class="value">{{ stats.confirming.rendimientos_proyectados | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.confirming.rendimientos_proyectados) }}</div>
             </div>
             <div class="kpi-card orange">
               <label>Total a Pagar por Deudores</label>
-              <div class="value">{{ stats.confirming.total_pagar_deudores | currency:'USD':'symbol':'1.0-0' }}</div>
+              <div class="value">{{ formatMoney(stats.confirming.total_pagar_deudores) }}</div>
             </div>
           </div>
 
@@ -621,8 +621,8 @@ Chart.register(...registerables);
                   <tbody>
                     <tr *ngFor="let r of getProcessedData(stats.confirming.rendimientos_emisor, 'confirmingRendimientos').items" class="row-clickable">
                       <td>{{ r.emisor }}</td>
-                      <td class="text-right">{{ r.valor_nominal | currency:'USD':'symbol':'1.0-0' }}</td>
-                      <td class="text-right bold blue-text">{{ r.rendimientos | currency:'USD':'symbol':'1.0-0' }}</td>
+                      <td class="text-right">{{ formatMoney(r.valor_nominal) }}</td>
+                      <td class="text-right bold blue-text">{{ formatMoney(r.rendimientos) }}</td>
                     </tr>
                   </tbody>
                 </table>
