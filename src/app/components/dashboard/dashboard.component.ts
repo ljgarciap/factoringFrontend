@@ -225,7 +225,7 @@ Chart.register(...registerables);
                 </thead>
                 <tbody>
                   <tr *ngFor="let d of getProcessedData(stats.cartera.daily_disbursements, 'carteraDaily').items" (click)="navigateToSheets('cartera', d.cliente)" class="row-clickable">
-                    <td>{{ d.fecha | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ safeDate(d.fecha, \'dd/MM/yyyy\') }}</td>
                     <td>{{ d.cliente }}</td>
                     <td>{{ d.identificacion }}</td>
                     <td class="text-right bold">{{ formatMoney(d.total) }}</td>
@@ -481,7 +481,7 @@ Chart.register(...registerables);
                 <tbody>
                   <tr *ngFor="let v of getProcessedData(stats.factoring.vencimientos, 'factoringVencimientos').items" class="row-clickable">
                     <td>{{ v.pagador }}</td>
-                    <td>{{ v.fecha | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ safeDate(v.fecha, \'dd/MM/yyyy\') }}</td>
                     <td class="text-right bold">{{ formatMoney(v.monto) }}</td>
                     <td>
                       <span class="badge" [ngClass]="{
@@ -565,7 +565,7 @@ Chart.register(...registerables);
                     <tr *ngFor="let v of getProcessedData(stats.confirming.vencimientos, 'confirmingVencimientos').items" class="row-clickable">
                       <td>{{ v.id_titulo }}</td>
                       <td>{{ v.emisor }}</td>
-                      <td>{{ v.fecha_final | date:'dd MMM yyyy' }}</td>
+                      <td>{{ safeDate(v.fecha_final, \'dd MMM yyyy\') }}</td>
                       <td class="text-right bold" [class.danger-text]="v.dias < 0">{{ v.dias }}</td>
                     </tr>
                   </tbody>
