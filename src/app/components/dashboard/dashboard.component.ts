@@ -46,10 +46,10 @@ Chart.register(...registerables);
 
         <div class="actions">
           <div class="tabs">
-            <button (click)="currentTab = 'cartera'" [class.active]="currentTab === 'cartera'">Cartera</button>
-            <button (click)="currentTab = 'pagos'" [class.active]="currentTab === 'pagos'">Pagos</button>
-            <button (click)="currentTab = 'factoring'" [class.active]="currentTab === 'factoring'">Factoring</button>
-            <button (click)="currentTab = 'confirming'" [class.active]="currentTab === 'confirming'">Confirming</button>
+            <button (click)="setTab('cartera')" [class.active]="currentTab === 'cartera'">Cartera</button>
+            <button (click)="setTab('pagos')" [class.active]="currentTab === 'pagos'">Pagos</button>
+            <button (click)="setTab('factoring')" [class.active]="currentTab === 'factoring'">Factoring</button>
+            <button (click)="setTab('confirming')" [class.active]="currentTab === 'confirming'">Confirming</button>
           </div>
 
           <div class="btn-group">
@@ -1177,26 +1177,49 @@ export class DashboardComponent implements OnInit {
     this.loadStats();
   }
 
+  setTab(tab: string) {
+    this.currentTab = tab;
+    // If stats for this category don't exist yet, load them
+    if (!this.stats || !this.stats[tab === 'pagos' ? 'factoring' : tab]) {
+      this.loadStats();
+    }
+  }
+
   loadStats() {
     this.isRefreshing = true;
-    this.isLoading = true;
+    // Only show full-screen loader if we have no data at all
+    if (!this.stats) this.isLoading = true;
 
-    let params = `?t=${Date.now()}`;
+    const cat = this.currentTab;
+    let params = `?t=${Date.now()}&categoria=${cat}`;
     if (this.filterFechaInicio) params += `&fecha_inicio=${this.filterFechaInicio}`;
     if (this.filterFechaFin) params += `&fecha_fin=${this.filterFechaFin}`;
     if (this.filterCliente) params += `&cliente=${this.filterCliente}`;
 
     this.http.get(this.apiUrl + params).subscribe({
       next: (data: any) => {
-        this.stats = data;
+        // Partial update to keep other tabs' data if they were loaded
+        if (!this.stats) {
+          this.stats = data;
+        } else {
+          Object.assign(this.stats, data);
+        }
+
         this.updateCharts();
         this.isRefreshing = false;
         this.isLoading = false;
       },
-      error: (error) => {
-        console.error('Error fetching stats', error);
+      error: (err) => {
+        console.error('Error fetching dashboard stats:', err);
         this.isRefreshing = false;
         this.isLoading = false;
+        // Optionally set a default empty stats object so the UI doesn't break
+        if (!this.stats) {
+          // We'll leave it undefined to show an error or empty state if we wanted,
+          // but keeping it undefined means the chart html might hide. 
+          // For now, let's just create a dummy object to stop errors if needed.
+          // However the ngIf="!isLoading && stats" will keep it hidden.
+        }
       }
     });
   }
@@ -1325,61 +1348,63 @@ export class DashboardComponent implements OnInit {
   updateCharts() {
     if (!this.stats) return;
 
-    // Activity Distribution
-    if (this.stats.cartera.actividad) {
-      this.activityChartData.labels = this.stats.cartera.actividad.map((a: any) => a.sector_economico || 'Otros');
-      this.activityChartData.datasets[0].data = this.stats.cartera.actividad.map((a: any) => parseFloat(a.total));
+    // CARTERA
+    if (this.stats.cartera) {
+      if (this.stats.cartera.actividad) {
+        this.activityChartData.labels = this.stats.cartera.actividad.map((a: any) => a.sector_economico || 'Otros');
+        this.activityChartData.datasets[0].data = this.stats.cartera.actividad.map((a: any) => parseFloat(a.total));
+      }
+
+      if (this.stats.cartera.ciudades) {
+        this.cityChartData.labels = this.stats.cartera.ciudades.map((c: any) => c.ciudad || 'Desconocida');
+        this.cityChartData.datasets[0].data = this.stats.cartera.ciudades.map((c: any) => parseFloat(c.total));
+      }
+
+      const amort = this.stats.cartera.amortizacion;
+      if (amort) {
+        const total = amort.reduce((sum: number, a: any) => sum + (a.count || 0), 0);
+        this.amortChartData.labels = amort.map((a: any) => a.plan_amortizacion || 'N/A');
+        this.amortChartData.datasets[0].data = amort.map((a: any) => total > 0 ? (a.count / total * 100).toFixed(1) : 0);
+      }
+
+      if (this.stats.cartera.debtors) {
+        this.moraChartData.labels = this.stats.cartera.debtors.map((d: any) => d.cliente || 'Otros');
+        this.moraChartData.datasets[0].data = this.stats.cartera.debtors.map((d: any) => parseFloat(d.valor_mora));
+      }
     }
 
-    // Cities
-    this.cityChartData.labels = this.stats.cartera.ciudades.map((c: any) => c.ciudad || 'Desconocida');
-    this.cityChartData.datasets[0].data = this.stats.cartera.ciudades.map((c: any) => parseFloat(c.total));
+    // FACTORING & PAGOS
+    if (this.stats.factoring) {
+      if (this.stats.factoring.exposure_by_payer) {
+        this.exposureChartData.labels = this.stats.factoring.exposure_by_payer.map((e: any) => e.pagador);
+        this.exposureChartData.datasets[0].data = this.stats.factoring.exposure_by_payer.map((e: any) => parseFloat(e.total));
+      }
 
-    // Amortization
-    const amort = this.stats.cartera.amortizacion;
-    if (amort) {
-      const total = amort.reduce((sum: number, a: any) => sum + (a.count || 0), 0);
-      this.amortChartData.labels = amort.map((a: any) => a.plan_amortizacion || 'N/A');
-      this.amortChartData.datasets[0].data = amort.map((a: any) => total > 0 ? (a.count / total * 100).toFixed(1) : 0);
+      if (this.stats.factoring.payment_timeline) {
+        this.paymentTimelineChartData.labels = this.stats.factoring.payment_timeline.map((t: any) => {
+          const d = new Date(t.fecha);
+          return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+        });
+        this.paymentTimelineChartData.datasets[0].data = this.stats.factoring.payment_timeline.map((t: any) => parseFloat(t.total));
+      }
+
+      if (this.stats.factoring.payment_distribution) {
+        this.paymentDistributionChartData.labels = this.stats.factoring.payment_distribution.map((d: any) => d.cliente);
+        this.paymentDistributionChartData.datasets[0].data = this.stats.factoring.payment_distribution.map((d: any) => parseFloat(d.total));
+      }
     }
 
-    // Mora Chart
-    if (this.stats.cartera.debtors) {
-      this.moraChartData.labels = this.stats.cartera.debtors.map((d: any) => d.cliente || 'Otros');
-      this.moraChartData.datasets[0].data = this.stats.cartera.debtors.map((d: any) => parseFloat(d.valor_mora));
-    }
+    // CONFIRMING
+    if (this.stats.confirming) {
+      if (this.stats.confirming.analisis_emisores) {
+        this.emitterAnalysisChartData.labels = this.stats.confirming.analisis_emisores.map((e: any) => e.emisor);
+        this.emitterAnalysisChartData.datasets[0].data = this.stats.confirming.analisis_emisores.map((e: any) => parseFloat(e.total));
+      }
 
-    // Factoring: Exposure by Payer
-    if (this.stats.factoring.exposure_by_payer) {
-      this.exposureChartData.labels = this.stats.factoring.exposure_by_payer.map((e: any) => e.pagador);
-      this.exposureChartData.datasets[0].data = this.stats.factoring.exposure_by_payer.map((e: any) => parseFloat(e.total));
-    }
-
-    // Confirming: Analysis of Emitters
-    if (this.stats.confirming.analisis_emisores) {
-      this.emitterAnalysisChartData.labels = this.stats.confirming.analisis_emisores.map((e: any) => e.emisor);
-      this.emitterAnalysisChartData.datasets[0].data = this.stats.confirming.analisis_emisores.map((e: any) => parseFloat(e.total));
-    }
-
-    // Confirming: Avg Tasa by Emisor
-    if (this.stats.confirming.tasa_media_emisor) {
-      this.emitterTasaChartData.labels = this.stats.confirming.tasa_media_emisor.map((e: any) => e.emisor);
-      this.emitterTasaChartData.datasets[0].data = this.stats.confirming.tasa_media_emisor.map((e: any) => parseFloat(e.avg_tasa));
-    }
-
-    // Pagos: Timeline
-    if (this.stats.factoring.payment_timeline) {
-      this.paymentTimelineChartData.labels = this.stats.factoring.payment_timeline.map((t: any) => {
-        const d = new Date(t.fecha);
-        return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
-      });
-      this.paymentTimelineChartData.datasets[0].data = this.stats.factoring.payment_timeline.map((t: any) => parseFloat(t.total));
-    }
-
-    // Pagos: Distribution
-    if (this.stats.factoring.payment_distribution) {
-      this.paymentDistributionChartData.labels = this.stats.factoring.payment_distribution.map((d: any) => d.cliente);
-      this.paymentDistributionChartData.datasets[0].data = this.stats.factoring.payment_distribution.map((d: any) => parseFloat(d.total));
+      if (this.stats.confirming.tasa_media_emisor) {
+        this.emitterTasaChartData.labels = this.stats.confirming.tasa_media_emisor.map((e: any) => e.emisor);
+        this.emitterTasaChartData.datasets[0].data = this.stats.confirming.tasa_media_emisor.map((e: any) => parseFloat(e.avg_tasa));
+      }
     }
   }
 

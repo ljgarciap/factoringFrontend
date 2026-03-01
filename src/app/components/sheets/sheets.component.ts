@@ -94,11 +94,10 @@ import { environment } from '../../../environments/environment';
                       <span class="id-badge">#{{ row[col] }}</span>
                     </ng-container>
                     
-                    <!-- Editable Fields for Cartera -->
+                    <!-- Editable Fields for Cartera / Observaciones globally -->
                     <ng-container *ngSwitchCase="'observaciones'">
                       <div class="editable-cell">
                         <input 
-                          *ngIf="categoria === 'cartera'"
                           type="text" 
                           [(ngModel)]="row[col]" 
                           (blur)="saveRecord(row)"
@@ -108,7 +107,6 @@ import { environment } from '../../../environments/environment';
                         <span class="save-status inline" [class.success]="saveStatus[row.id] === 'success'" [class.saving]="saveStatus[row.id] === 'saving'">
                           {{ saveStatus[row.id] === 'saving' ? '⏳' : (saveStatus[row.id] === 'success' ? '✅' : '') }}
                         </span>
-                        <span *ngIf="categoria !== 'cartera'">{{ row[col] || '-' }}</span>
                       </div>
                     </ng-container>
 
@@ -625,11 +623,14 @@ export class SheetsComponent implements OnInit {
     this.saveStatus[row.id] = 'saving';
     const url = `${this.baseUrl}/history/${this.categoria}/${row.id}`;
     // Only send relevant editable fields
-    const payload = {
-      observaciones: row.observaciones,
-      sector_economico: row.sector_economico,
-      ciudad: row.ciudad
+    const payload: any = {
+      observaciones: row.observaciones
     };
+
+    if (this.categoria === 'cartera') {
+      payload.sector_economico = row.sector_economico;
+      payload.ciudad = row.ciudad;
+    }
 
     this.http.patch(url, payload).subscribe({
       next: () => {
@@ -703,19 +704,26 @@ export class SheetsComponent implements OnInit {
         'id', 'numero_radicado', 'cliente', 'identificacion',
         'actividad_economica', 'sector_economico', 'ciudad',
         'valor_desembolso', 'saldo_capital',
-        'vencido', 'dias_vencido', 'valor_vencido', 'tiene_mora', 'valor_mora',
-        'observaciones'
+        'vencido', 'dias_vencido', 'valor_vencido', 'tiene_mora', 'valor_mora'
       ];
 
       // Filter out keys we don't want and add remaining keys at the end
       const filtered = prioritized.filter(k => allKeys.includes(k));
-      const excluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'estado_capital', 'fecha_vencimiento_capital'];
+      const excluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'estado_capital', 'fecha_vencimiento_capital', 'observaciones'];
       const others = allKeys.filter(k => !prioritized.includes(k) && !excluded.includes(k));
 
-      return [...filtered, ...others];
+      const finalCols = [...filtered, ...others];
+      if (allKeys.includes('observaciones') || true) { // Always show it if editable
+        finalCols.push('observaciones');
+      }
+      return finalCols;
+    } else {
+      // Ensure 'observaciones' appears at the end
+      const commonExcluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'estado_capital', 'fecha_vencimiento_capital', 'observaciones'];
+      const fields = allKeys.filter(k => !commonExcluded.includes(k));
+      fields.push('observaciones');
+      return fields;
     }
-
-    return allKeys.filter(k => !['updated_at', 'created_at'].includes(k));
   }
 
   formatHeader(key: string): string {
