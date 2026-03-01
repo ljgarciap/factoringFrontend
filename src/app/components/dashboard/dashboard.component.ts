@@ -1485,4 +1485,24 @@ export class DashboardComponent implements OnInit {
     const settings = this.tableSettings[settingsKey];
     settings.page += delta;
   }
+
+  formatMoney(value: any): string {
+    if (value === null || value === undefined || value === '') return '-';
+
+    let cleanVal = value;
+    if (typeof value === 'string') {
+      // Strip out any existing currency symbols, commas, or spaces if n8n ingested it roughly
+      cleanVal = value.replace(/[\$,\s]/g, '');
+    }
+
+    const num = Number(cleanVal);
+    if (isNaN(num)) return value; // Return original string if it is completely unparseable
+
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(num);
+  }
 }
