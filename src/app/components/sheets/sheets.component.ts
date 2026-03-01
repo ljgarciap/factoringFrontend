@@ -149,10 +149,33 @@ import { environment } from '../../../environments/environment';
                     </ng-container>
 
                     <!-- Currency Formatting -->
+                    <!-- Cartera -->
                     <span *ngSwitchCase="'valor_desembolso'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
                     <span *ngSwitchCase="'saldo_capital'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
                     <span *ngSwitchCase="'valor_vencido'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
                     <span *ngSwitchCase="'valor_mora'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'saldo_total'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'valor_ultimo_abono'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    
+                    <!-- Factoring OP -->
+                    <span *ngSwitchCase="'monto'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'valor_aprobado'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'valor_desembolsado'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'valor_reserva'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'descuento_financiero'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    
+                    <!-- Factoring Pagos -->
+                    <span *ngSwitchCase="'valor_titulo'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'valor_nominal'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'monto_pagado'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'saldo_restante'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'total_recaudado_comprobante'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    
+                    <!-- Confirming -->
+                    <span *ngSwitchCase="'reembolso_g_desembolso'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'base_negociacion'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'rendimientos_proyectados'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
+                    <span *ngSwitchCase="'valor_pagar_deudor'">{{ row[col] | currency:'USD':'symbol':'1.0-2' }}</span>
                     
                     <span *ngSwitchDefault>{{ row[col] !== null ? row[col] : '-' }}</span>
                   </ng-container>
