@@ -159,6 +159,15 @@ import { environment } from '../../../environments/environment';
           </div>
         </div>
       </div>
+
+      <!-- Toast Notifications -->
+      <div class="toast-container">
+        <div *ngFor="let toast of toasts" class="toast" [class]="'toast-' + toast.type">
+          <span class="toast-icon">{{ toast.type === 'success' ? '✅' : '❌' }}</span>
+          <span class="toast-message">{{ toast.message }}</span>
+          <button class="toast-close" (click)="removeToast(toast)">×</button>
+        </div>
+      </div>
     </div>
 
   `,
@@ -307,6 +316,16 @@ import { environment } from '../../../environments/environment';
 
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
+    /* Toast Styles */
+    .toast-container { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 12px; z-index: 9999; }
+    .toast { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); min-width: 300px; animation: slideIn 0.3s ease-out forwards; background: white; color: #1e293b; border-left: 4px solid #cbd5e1; }
+    .toast-success { border-left-color: #10b981; }
+    .toast-error { border-left-color: #ef4444; }
+    .toast-message { flex: 1; font-size: 14px; font-weight: 500; }
+    .toast-close { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; }
+    .toast-close:hover { color: #475569; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
     .actions-cell { display: flex; gap: 8px; justify-content: flex-end; }
     .action-btn { background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; border-radius: 4px; transition: background 0.2s; }
     .action-btn:hover { background: #f1f5f9; }
@@ -428,18 +447,33 @@ export class LogsComponent implements OnInit {
     }
   }
 
+  // Sistema de Toasts
+  toasts: { id: number, message: string, type: 'success' | 'error' }[] = [];
+  toastIdCounter = 0;
+
+  showToast(message: string, type: 'success' | 'error' = 'success') {
+    const id = this.toastIdCounter++;
+    const toast = { id, message, type };
+    this.toasts.push(toast);
+    setTimeout(() => this.removeToast(toast), 5000); // Auto close after 5s
+  }
+
+  removeToast(toast: any) {
+    this.toasts = this.toasts.filter(t => t.id !== toast.id);
+  }
+
   retryLog(log: any) {
     if (!confirm(`¿Estás seguro de que deseas reintentar procesar el log #${log.id}?`)) return;
-    
+
     this.isLoading = true;
     this.http.post(`${this.apiUrl}/${log.id}/retry`, {}).subscribe({
       next: (res: any) => {
-        alert(res.message || 'Log reintentado con éxito');
+        this.showToast(res.message || 'Log reintentado con éxito', 'success');
         this.loadLogs(); // Refrescar tabla
       },
       error: (err) => {
         console.error(err);
-        alert(err.error?.message || 'Hubo un error al reintentar el log');
+        this.showToast(err.error?.message || 'Hubo un error al reintentar el log', 'error');
         this.loadLogs();
       }
     });
