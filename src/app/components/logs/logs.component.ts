@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { environment } from '../../../environments/environment';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-logs',
@@ -463,18 +464,30 @@ export class LogsComponent implements OnInit {
   }
 
   retryLog(log: any) {
-    if (!confirm(`¿Estás seguro de que deseas reintentar procesar el log #${log.id}?`)) return;
-
-    this.isLoading = true;
-    this.http.post(`${this.apiUrl}/${log.id}/retry`, {}).subscribe({
-      next: (res: any) => {
-        this.showToast(res.message || 'Log reintentado con éxito', 'success');
-        this.loadLogs(); // Refrescar tabla
-      },
-      error: (err) => {
-        console.error(err);
-        this.showToast(err.error?.message || 'Hubo un error al reintentar el log', 'error');
-        this.loadLogs();
+    Swal.fire({
+      title: '¿Reintentar procesamiento?',
+      text: `Se volverá a procesar el payload del log #${log.id}.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3b82f6',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, reintentar',
+      cancelButtonText: 'Cancelar',
+      timerProgressBar: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.isLoading = true;
+        this.http.post(`${this.apiUrl}/${log.id}/retry`, {}).subscribe({
+          next: (res: any) => {
+            this.showToast(res.message || 'Log reintentado con éxito', 'success');
+            this.loadLogs(); // Refrescar tabla
+          },
+          error: (err) => {
+            console.error(err);
+            this.showToast(err.error?.message || 'Hubo un error al reintentar el log', 'error');
+            this.loadLogs();
+          }
+        });
       }
     });
   }
