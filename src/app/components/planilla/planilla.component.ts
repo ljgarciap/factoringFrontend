@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-planilla',
@@ -54,7 +55,7 @@ export class PlanillaComponent implements OnInit {
   loading = false;
   message = '';
 
-  private apiUrl = 'http://localhost:8000/api/planilla';
+  private apiUrl = environment.apiUrl + '/planilla';
 
   constructor(private http: HttpClient) {}
 

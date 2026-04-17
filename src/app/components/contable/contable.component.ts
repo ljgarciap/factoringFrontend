@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-contable',
@@ -71,7 +72,7 @@ export class ContableComponent implements OnInit {
     formData.append('file', this.selectedFile);
 
     // Determines the upload path based on active tab
-    this.http.post(`http://localhost:8000/api/contable/upload/${this.activeTab}`, formData)
+    this.http.post(`${environment.apiUrl}/contable/upload/${this.activeTab}`, formData)
       .subscribe({
         next: (res: any) => {
           this.message = res.message || 'Subido con éxito';
@@ -90,7 +91,7 @@ export class ContableComponent implements OnInit {
     this.currentPage = page;
 
     if (this.historyMode) {
-      this.http.get(`http://localhost:8000/api/contable/imports?page=${this.currentPage}`).subscribe((res: any) => {
+      this.http.get(`${environment.apiUrl}/contable/imports?page=${this.currentPage}`).subscribe((res: any) => {
         this.imports = res.data || [];
         this.totalPages = res.last_page || 1;
       });
@@ -100,7 +101,7 @@ export class ContableComponent implements OnInit {
     const qs = `?page=${this.currentPage}&search=${this.searchTerm}&sortBy=${this.sortBy}&sortDir=${this.sortDir}`;
 
     if (this.activeTab === 'facturas') {
-      this.http.get(`http://localhost:8000/api/contable/facturas${qs}`).subscribe((res: any) => {
+      this.http.get(`${environment.apiUrl}/contable/facturas${qs}`).subscribe((res: any) => {
         this.facturas = (res.data || []).map((f: any) => ({
           ...f,
           vlr_bruto: Number(f.vlr_bruto),
@@ -113,7 +114,7 @@ export class ContableComponent implements OnInit {
         this.totalItems = res.total || 0;
       });
     } else if (this.activeTab === 'bancos') {
-      this.http.get(`http://localhost:8000/api/contable/bancos${qs}`).subscribe((res: any) => {
+      this.http.get(`${environment.apiUrl}/contable/bancos${qs}`).subscribe((res: any) => {
         this.bancos = (res.data || []).map((b: any) => ({
           ...b,
           valor: Number(b.valor)
@@ -123,7 +124,7 @@ export class ContableComponent implements OnInit {
         this.totalItems = res.total || 0;
       });
     } else if (this.activeTab === 'auxiliar') {
-      this.http.get(`http://localhost:8000/api/contable/auxiliar${qs}`).subscribe((res: any) => {
+      this.http.get(`${environment.apiUrl}/contable/auxiliar${qs}`).subscribe((res: any) => {
         this.auxiliar = (res.data || []).map((a: any) => ({
           ...a,
           debito_local: Number(a.debito_local),
@@ -135,7 +136,7 @@ export class ContableComponent implements OnInit {
         this.totalItems = res.total || 0;
       });
     } else if (this.activeTab === 'gastos') {
-      this.http.get(`http://localhost:8000/api/contable/gastos${qs}`).subscribe((res: any) => {
+      this.http.get(`${environment.apiUrl}/contable/gastos${qs}`).subscribe((res: any) => {
         this.gastos = (res.data || []).map((g: any) => ({
           ...g,
           valor: Number(g.valor)
@@ -149,7 +150,7 @@ export class ContableComponent implements OnInit {
 
   reconcile() {
     this.uploading = true;
-    this.http.post('http://localhost:8000/api/contable/reconcile', {}).subscribe({
+    this.http.post(`${environment.apiUrl}/contable/reconcile`, {}).subscribe({
       next: (res: any) => {
         this.message = `Conciliación completa: ${res.matched} coincidencias, ${res.gastos} gastos generados.`;
         this.uploading = false;
@@ -165,7 +166,7 @@ export class ContableComponent implements OnInit {
   clearData() {
     if (confirm('¿Estás seguro de que deseas eliminar TODOS los datos del módulo contable? Esta acción no se puede deshacer.')) {
       this.uploading = true;
-      this.http.delete('http://localhost:8000/api/contable/clear').subscribe({
+      this.http.delete(`${environment.apiUrl}/contable/clear`).subscribe({
         next: (res: any) => {
           this.message = res.message;
           this.loadData();
