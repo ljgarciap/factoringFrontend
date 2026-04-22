@@ -42,6 +42,22 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
+
+  .role-selector {
+    margin-left: 15px;
+    select {
+      background: #2d2d3f;
+      color: #3498db;
+      border: 1px solid #3498db;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+      &:hover { background: #3498db; color: white; }
+    }
+  }
 }
 
 .nav-links {
