@@ -100,12 +100,18 @@ import Swal from 'sweetalert2';
   
                     <!-- Gerente Actions -->
                     <ng-container *ngIf="userRole === 'gerente' || userRole === 'superadmin'">
-                      <button *ngIf="upload.status === 'validado'" class="btn-pro primary sm" (click)="approve(upload)">
-                        <span class="material-symbols-outlined">verified</span> Aprobación Final
+                      <button *ngIf="upload.status === 'validado'" class="btn-pro primary sm" (click)="finalize(upload, 'aprobar')">
+                        <span class="material-symbols-outlined">verified</span> Aprobar
+                      </button>
+                      <button *ngIf="upload.status === 'validado'" class="btn-pro danger sm" (click)="finalize(upload, 'rechazar')">
+                        <span class="material-symbols-outlined">block</span> Rechazar
                       </button>
                     </ng-container>
   
                     <!-- Common Actions -->
+                    <button class="btn-pro secondary sm icon-only" (click)="preview(upload)" title="Previsualizar">
+                      <span class="material-symbols-outlined">visibility</span>
+                    </button>
                     <button class="btn-pro secondary sm icon-only" (click)="download(upload)" title="Descargar Archivo">
                       <span class="material-symbols-outlined">download</span>
                     </button>
@@ -325,21 +331,26 @@ export class OperatorValidationComponent implements OnInit {
     }
   }
 
-  async approve(upload: any) {
-    const result = await Swal.fire({
-      title: 'Aprobación Final',
-      text: `¿Está seguro de aprobar definitivamente el archivo "${upload.original_name}"?`,
-      icon: 'question',
+  async finalize(upload: any, action: 'aprobar' | 'rechazar') {
+    const { value: observations, isConfirmed } = await Swal.fire({
+      title: action === 'aprobar' ? 'Aprobación Definitiva' : 'Rechazo Gerencial',
+      text: `¿Está seguro de ${action} el archivo "${upload.original_name}"?`,
+      input: 'textarea',
+      inputLabel: 'Observaciones finales',
+      inputPlaceholder: 'Comentarios para el cliente...',
       showCancelButton: true,
-      confirmButtonText: 'Sí, Aprobar',
-      confirmButtonColor: '#1A3B8B',
+      confirmButtonText: action === 'aprobar' ? 'Sí, Aprobar' : 'Sí, Rechazar',
+      confirmButtonColor: action === 'aprobar' ? '#1A3B8B' : '#E53E3E',
       cancelButtonText: 'Cancelar'
     });
 
-    if (result.isConfirmed) {
-      this.http.post(`${environment.apiUrl}/uploads/${upload.id}/approve`, {}).subscribe(() => {
+    if (isConfirmed) {
+      this.http.post(`${environment.apiUrl}/uploads/${upload.id}/approve`, {
+        action,
+        observations: observations || ''
+      }).subscribe(() => {
         this.loadUploads();
-        Swal.fire('¡Aprobado!', 'La documentación ha sido procesada correctamente.', 'success');
+        Swal.fire('¡Procesado!', `La documentación ha sido ${action === 'aprobar' ? 'aprobada' : 'rechazada'} exitosamente.`, 'success');
       });
     }
   }
@@ -353,6 +364,57 @@ export class OperatorValidationComponent implements OnInit {
       link.download = upload.original_name;
       link.click();
       window.URL.revokeObjectURL(downloadUrl);
+    });
+  }
+
+  preview(upload: any): void {
+    const url = `${environment.apiUrl}/uploads/${upload.id}/download`;
+    const isImage = upload.original_name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/);
+    const isPdf = upload.original_name.toLowerCase().endsWith('.pdf');
+
+    Swal.fire({
+      title: 'Cargando previsualización...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    this.http.get(url, { responseType: 'blob' }).subscribe({
+      next: (blob: Blob) => {
+        const fileUrl = window.URL.createObjectURL(blob);
+        let htmlContent = '';
+
+        if (isImage) {
+          htmlContent = `<img src="${fileUrl}" style="max-width: 100%; max-height: 70vh; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">`;
+        } else if (isPdf) {
+          htmlContent = `<iframe src="${fileUrl}" style="width: 100%; height: 70vh; border: none; border-radius: 8px;"></iframe>`;
+        } else {
+          htmlContent = `<div style="padding: 2rem; text-align: center;">
+            <span class="material-symbols-outlined" style="font-size: 48px; color: #A0AEC0;">insert_drive_file</span>
+            <p style="margin-top: 1rem;">Previsualización no disponible para este tipo de archivo.</p>
+            <p style="font-size: 0.85rem; color: #718096;">${upload.original_name}</p>
+          </div>`;
+        }
+
+        Swal.fire({
+          title: upload.original_name,
+          html: htmlContent,
+          width: isImage ? 'auto' : '80%',
+          showCloseButton: true,
+          showConfirmButton: false,
+          customClass: {
+            popup: 'preview-modal-popup'
+          },
+          didClose: () => {
+            window.URL.revokeObjectURL(fileUrl);
+          }
+        });
+      },
+      error: (err) => {
+        console.error('Error fetching file for preview:', err);
+        Swal.fire('Error', 'No se pudo obtener el archivo para la previsualización.', 'error');
+      }
     });
   }
 }

@@ -58,6 +58,13 @@ import { interval, Subscription } from 'rxjs';
             </a>
           </div>
 
+          <div class="nav-section" *ngIf="authService.getActiveRole() === 'superadmin'">
+            <label>Configuración</label>
+            <a routerLink="/users" routerLinkActive="active" class="nav-link">
+              <span class="material-symbols-outlined">group</span> Gestión Usuarios
+            </a>
+          </div>
+
           <div class="nav-section" *ngIf="authService.isAuthorized(['cliente'])">
             <label>Portal Cliente</label>
             <a routerLink="/client-upload" routerLinkActive="active" class="nav-link">

@@ -16,7 +16,7 @@ Chart.register(...registerables);
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule, BaseChartDirective],
+  imports: [CommonModule, FormsModule, BaseChartDirective],
   providers: [provideCharts(withDefaultRegisterables())],
     template: `
     <div class="dashboard-wrapper" #dashboardContent>

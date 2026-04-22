@@ -7,7 +7,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-contable',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './contable.component.html',
   styleUrls: ['./contable.component.scss']
 })

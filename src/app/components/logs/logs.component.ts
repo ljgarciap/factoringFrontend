@@ -8,7 +8,7 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-logs',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe],
   template: `
     <div class="view-container">
       <div class="search-header">

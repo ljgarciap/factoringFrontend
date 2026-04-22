@@ -7,7 +7,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-upload',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './upload.component.html',
   styleUrls: ['./upload.component.scss']
 })

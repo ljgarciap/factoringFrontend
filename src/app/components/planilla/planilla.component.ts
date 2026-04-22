@@ -7,7 +7,7 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-planilla',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './planilla.component.html',
   styleUrls: ['./planilla.component.scss']
 })

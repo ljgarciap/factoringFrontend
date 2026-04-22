@@ -12,6 +12,7 @@ import { LoginComponent } from './components/auth/login/login.component';
 import { roleGuard } from './guards/role.guard';
 
 import { ProfileSettingsComponent } from './components/profile-settings/profile-settings.component';
+import { UserManagementComponent } from './components/user-management/user-management.component';
 
 export const routes: Routes = [
     { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -69,6 +70,12 @@ export const routes: Routes = [
         component: OperatorValidationComponent, 
         canActivate: [roleGuard], 
         data: { roles: ['operativo', 'gerente'] } 
+    },
+    { 
+        path: 'users', 
+        component: UserManagementComponent, 
+        canActivate: [roleGuard], 
+        data: { roles: ['superadmin'] } 
     },
     { path: '**', redirectTo: '' }
 ];
