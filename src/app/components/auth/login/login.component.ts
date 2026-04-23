@@ -14,7 +14,7 @@ import { AuthService } from '../../../services/auth.service';
     <div class="login-wrapper">
       <div class="login-card card">
         <div class="login-header">
-          <img src="assets/logo.png" alt="Proseguir" class="login-logo">
+          <img src="assets/logopsl.png" alt="Proseguir" class="login-logo">
           <h2>Acceso al Sistema</h2>
           <p>Ingresa tus credenciales para continuar.</p>
         </div>

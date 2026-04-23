@@ -17,7 +17,7 @@ import { interval, Subscription } from 'rxjs';
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="sidebar-header">
-          <img src="assets/logo.png" alt="Proseguir" class="app-logo">
+          <img src="assets/logopsl.png" alt="Proseguir" class="app-logo">
         </div>
 
         <nav class="sidebar-nav">
