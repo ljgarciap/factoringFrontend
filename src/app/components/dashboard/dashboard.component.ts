@@ -59,6 +59,9 @@ Chart.register(...registerables);
             <button (click)="setTab('confirming')" [class.active]="currentTab === 'confirming'">
               <span class="material-symbols-outlined">verified_user</span> Confirming
             </button>
+            <button (click)="setTab('compraventa')" [class.active]="currentTab === 'compraventa'">
+              <span class="material-symbols-outlined">assignment</span> Compraventa
+            </button>
           </div>
 
           <div class="btn-group">
@@ -242,13 +245,188 @@ Chart.register(...registerables);
           </div>
         </div>
 
-        <!-- Omiting other tabs for brevity in this replace call, but keeping logic consistent -->
-        <div class="tab-view" *ngIf="currentTab === 'factoring' || currentTab === 'confirming'">
-             <div class="empty-state">
-                <span class="material-symbols-outlined">construction</span>
-                <h3>Módulo en Refinamiento Visual</h3>
-                <p>Estamos adaptando estas métricas al nuevo estándar corporativo.</p>
-             </div>
+        <!-- TAB: FACTORING -->
+        <div class="tab-view" *ngIf="currentTab === 'factoring' && stats.factoring">
+          <div class="kpi-grid">
+            <div class="kpi-card pro-card cyan">
+              <div class="kpi-icon"><span class="material-symbols-outlined">analytics</span></div>
+              <div class="kpi-body">
+                <label>Volumen Financiado</label>
+                <div class="value">{{ formatMoney(stats.factoring.volumen_total) }}</div>
+              </div>
+            </div>
+            <div class="kpi-card pro-card navy">
+              <div class="kpi-icon"><span class="material-symbols-outlined">payments</span></div>
+              <div class="kpi-body">
+                <label>Valor Desembolsado</label>
+                <div class="value">{{ formatMoney(stats.factoring.valor_desembolsado) }}</div>
+              </div>
+            </div>
+            <div class="kpi-card pro-card orange">
+              <div class="kpi-icon"><span class="material-symbols-outlined">percent</span></div>
+              <div class="kpi-body">
+                <label>Tasa Media</label>
+                <div class="value">{{ stats.factoring.avg_tasa }}%</div>
+              </div>
+            </div>
+            <div class="kpi-card pro-card purple">
+              <div class="kpi-icon"><span class="material-symbols-outlined">account_balance_wallet</span></div>
+              <div class="kpi-body">
+                <label>Reserva Total</label>
+                <div class="value">{{ formatMoney(stats.factoring.valor_reserva) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card chart-container span-8">
+              <div class="card-header">
+                <h3>Exposición por Pagador</h3>
+              </div>
+              <div class="chart-box">
+                <canvas baseChart
+                  [data]="exposureChartData"
+                  [options]="barChartOptions"
+                  [type]="'bar'">
+                </canvas>
+              </div>
+            </div>
+            
+            <div class="card table-container span-4">
+              <div class="card-header">
+                <h3>Próximos Vencimientos</h3>
+              </div>
+              <table class="pro-table x-small">
+                <thead>
+                  <tr>
+                    <th>Pagador</th>
+                    <th class="text-right">Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let v of $any(stats.factoring).vencimientos | slice:0:6">
+                    <td class="truncate">{{ $any(v).pagador }}</td>
+                    <td class="text-right bold">{{ formatMoney($any(v).monto) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: CONFIRMING -->
+        <div class="tab-view" *ngIf="currentTab === 'confirming' && stats.confirming">
+          <div class="kpi-grid">
+            <div class="kpi-card pro-card navy">
+              <div class="kpi-icon"><span class="material-symbols-outlined">request_quote</span></div>
+              <div class="kpi-body">
+                <label>Valor Nominal Total</label>
+                <div class="value">{{ formatMoney(stats.confirming.total_val) }}</div>
+              </div>
+            </div>
+            <div class="kpi-card pro-card cyan">
+              <div class="kpi-icon"><span class="material-symbols-outlined">trending_up</span></div>
+              <div class="kpi-body">
+                <label>Rendimientos Proyectados</label>
+                <div class="value">{{ formatMoney(stats.confirming.rendimientos_proyectados) }}</div>
+              </div>
+            </div>
+            <div class="kpi-card pro-card orange">
+              <div class="kpi-icon"><span class="material-symbols-outlined">percent</span></div>
+              <div class="kpi-body">
+                <label>Tasa Factor Promedio</label>
+                <div class="value">{{ stats.confirming.avg_tasa }}%</div>
+              </div>
+            </div>
+            <div class="kpi-card pro-card purple">
+              <div class="kpi-icon"><span class="material-symbols-outlined">account_balance</span></div>
+              <div class="kpi-body">
+                <label>Valor a Pagar Deudores</label>
+                <div class="value">{{ formatMoney(stats.confirming.total_pagar_deudores) }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card chart-container span-6">
+              <div class="card-header">
+                <h3>Distribución por Emisor</h3>
+              </div>
+              <div class="chart-box doughnut">
+                <canvas baseChart
+                  [data]="emitterAnalysisChartData"
+                  [options]="pieChartOptions"
+                  [type]="'pie'">
+                </canvas>
+              </div>
+            </div>
+            <div class="card chart-container span-6">
+              <div class="card-header">
+                <h3>Tasas por Emisor</h3>
+              </div>
+              <div class="chart-box">
+                <canvas baseChart
+                  [data]="emitterTasaChartData"
+                  [options]="barChartOptions"
+                  [type]="'bar'">
+                </canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: COMPRAVENTA -->
+        <div class="tab-view" *ngIf="currentTab === 'compraventa' && stats.compraventa">
+          <div class="kpi-grid">
+            <div class="kpi-card pro-card navy">
+              <div class="kpi-icon"><span class="material-symbols-outlined">assignment</span></div>
+              <div class="kpi-body">
+                <label>Total Negociado</label>
+                <div class="value">{{ formatMoney(stats.compraventa.total_val) }}</div>
+              </div>
+            </div>
+            <div class="kpi-card pro-card cyan">
+              <div class="kpi-icon"><span class="material-symbols-outlined">numbers</span></div>
+              <div class="kpi-body">
+                <label>Nro. Documentos</label>
+                <div class="value">{{ stats.compraventa.count }}</div>
+              </div>
+            </div>
+            <div class="kpi-card pro-card orange">
+              <div class="kpi-icon"><span class="material-symbols-outlined">group</span></div>
+              <div class="kpi-body">
+                <label>Vendedores Únicos</label>
+                <div class="value">{{ stats.compraventa.unique_vendedores }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid">
+            <div class="card chart-container span-6">
+              <div class="card-header">
+                <h3>Top Vendedores</h3>
+              </div>
+              <div class="chart-box doughnut">
+                <canvas baseChart
+                  [data]="topVendedoresChartData"
+                  [options]="pieChartOptions"
+                  [type]="'doughnut'">
+                </canvas>
+              </div>
+            </div>
+            <div class="card chart-container span-6">
+              <div class="card-header">
+                <h3>Top Compradores</h3>
+              </div>
+              <div class="chart-box doughnut">
+                <canvas baseChart
+                  [data]="topCompradoresChartData"
+                  [options]="pieChartOptions"
+                  [type]="'doughnut'">
+                </canvas>
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -455,7 +633,12 @@ export class DashboardComponent implements OnInit {
   isRefreshing = false;
   isLoading = true;
   isGeneratingPdf = false;
-  stats: any = null;
+  stats: any = {
+    cartera: null,
+    factoring: null,
+    confirming: null,
+    compraventa: null
+  };
   pendingCount: number = 0;
   private apiUrl = `${environment.apiUrl}/dashboard/stats`;
   // Pagination & Search States
@@ -563,6 +746,17 @@ export class DashboardComponent implements OnInit {
     }]
   };
 
+  // Compraventa Charts
+  public topVendedoresChartData: ChartData<'doughnut'> = {
+    labels: [],
+    datasets: [{ data: [], backgroundColor: ['#5e72e4', '#2dce89', '#fb6340', '#11cdef', '#f5365c'] }]
+  };
+
+  public topCompradoresChartData: ChartData<'doughnut'> = {
+    labels: [],
+    datasets: [{ data: [], backgroundColor: ['#5e72e4', '#2dce89', '#fb6340', '#11cdef', '#f5365c'] }]
+  };
+
   public pieChartOptions: ChartConfiguration['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -591,8 +785,10 @@ export class DashboardComponent implements OnInit {
 
   setTab(tab: string) {
     this.currentTab = tab;
-    // If stats for this category don't exist yet, load them
-    if (!this.stats || !this.stats[tab === 'pagos' ? 'factoring' : tab]) {
+    // Map pagos to factoring key
+    const dataKey = (tab === 'pagos') ? 'factoring' : tab;
+    
+    if (!this.stats[dataKey]) {
       this.loadStats();
     }
   }
@@ -619,12 +815,8 @@ export class DashboardComponent implements OnInit {
 
     this.http.get(this.apiUrl + params).subscribe({
       next: (data: any) => {
-        // Partial update to keep other tabs' data if they were loaded
-        if (!this.stats) {
-          this.stats = data;
-        } else {
-          Object.assign(this.stats, data);
-        }
+        // Merge data into existing stats object
+        Object.assign(this.stats, data);
 
         this.updateCharts();
         this.isRefreshing = false;
@@ -825,6 +1017,18 @@ export class DashboardComponent implements OnInit {
       if (this.stats.confirming.tasa_media_emisor) {
         this.emitterTasaChartData.labels = this.stats.confirming.tasa_media_emisor.map((e: any) => e.emisor);
         this.emitterTasaChartData.datasets[0].data = this.stats.confirming.tasa_media_emisor.map((e: any) => parseFloat(e.avg_tasa));
+      }
+    }
+
+    // COMPRAVENTA
+    if (this.stats.compraventa) {
+      if (this.stats.compraventa.top_vendedores) {
+        this.topVendedoresChartData.labels = this.stats.compraventa.top_vendedores.map((v: any) => v.vendedor);
+        this.topVendedoresChartData.datasets[0].data = this.stats.compraventa.top_vendedores.map((v: any) => parseFloat(v.total));
+      }
+      if (this.stats.compraventa.top_compradores) {
+        this.topCompradoresChartData.labels = this.stats.compraventa.top_compradores.map((c: any) => c.comprador);
+        this.topCompradoresChartData.datasets[0].data = this.stats.compraventa.top_compradores.map((c: any) => parseFloat(c.total));
       }
     }
   }

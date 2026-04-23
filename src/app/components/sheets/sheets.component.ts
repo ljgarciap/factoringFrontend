@@ -37,14 +37,14 @@ import { environment } from '../../../environments/environment';
             [class.active]="categoria === 'op'" 
             class="tab-btn"
           >
-            Factoring Op
+            Factoring
           </button>
           <button 
             (click)="setCategory('pagos')" 
             [class.active]="categoria === 'pagos'" 
             class="tab-btn"
           >
-            Factoring Pagos
+            Pagos
           </button>
           <button 
             (click)="setCategory('opf')" 
@@ -52,6 +52,13 @@ import { environment } from '../../../environments/environment';
             class="tab-btn"
           >
             Confirming
+          </button>
+          <button 
+            (click)="setCategory('compraventa')" 
+            [class.active]="categoria === 'compraventa'" 
+            class="tab-btn"
+          >
+            Compraventa
           </button>
         </div>
         
@@ -176,6 +183,9 @@ import { environment } from '../../../environments/environment';
                     <span *ngSwitchCase="'base_negociacion'">{{ formatMoney(row[col]) }}</span>
                     <span *ngSwitchCase="'rendimientos_proyectados'">{{ formatMoney(row[col]) }}</span>
                     <span *ngSwitchCase="'valor_pagar_deudor'">{{ formatMoney(row[col]) }}</span>
+                    
+                    <!-- Compraventa -->
+                    <span *ngSwitchCase="'valor'">{{ formatMoney(row[col]) }}</span>
                     
                     <span *ngSwitchDefault>{{ row[col] !== null ? row[col] : '-' }}</span>
                   </ng-container>
@@ -742,7 +752,7 @@ export class SheetsComponent implements OnInit {
       return finalCols;
     } else {
       // Ensure 'observaciones' appears at the end
-      const commonExcluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'estado_capital', 'fecha_vencimiento_capital', 'observaciones'];
+      const commonExcluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'estado_capital', 'fecha_vencimiento_capital', 'observaciones', 'client_upload_id'];
       const fields = allKeys.filter(k => !commonExcluded.includes(k));
       fields.push('observaciones');
       return fields;
@@ -752,6 +762,7 @@ export class SheetsComponent implements OnInit {
   formatHeader(key: string): string {
     if (key === 'valor_desembolso') return 'DESEMBOLSO';
     if (key === 'numero_radicado') return 'RADICADO';
+    if (key === 'valor_aprobado') return 'VALOR PRESENTE';
     return key.replace(/_/g, ' ').toUpperCase();
   }
 
