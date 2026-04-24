@@ -5,6 +5,7 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-sheets',
@@ -63,6 +64,10 @@ import { environment } from '../../../environments/environment';
         </div>
         
         <div class="actions-group">
+          <button *ngIf="categoria === 'pagos'" (click)="reconcileSettlement()" class="btn-action blue" [class.loading]="isReconciling">
+            <span class="icon">🔗</span>
+            <span class="text">{{ isReconciling ? 'Cruzando...' : 'Cruzar Operaciones' }}</span>
+          </button>
           <button (click)="loadHistory()" class="btn-action" [class.loading]="isLoading">
             <span class="icon">🔄</span>
             <span class="text">{{ isLoading ? 'Cargando...' : 'Actualizar' }}</span>
@@ -99,6 +104,12 @@ import { environment } from '../../../environments/environment';
                   <ng-container [ngSwitch]="col">
                     <ng-container *ngSwitchCase="'id'">
                       <span class="id-badge">#{{ row[col] }}</span>
+                    </ng-container>
+
+                    <ng-container *ngSwitchCase="'estado_liquidacion'">
+                      <span class="status-pill" [class.pending]="row[col] === 'pendiente'" [class.done]="row[col] === 'completado'">
+                        {{ row[col] === 'pendiente' ? 'Pendiente Cruce' : 'Cruzado' }}
+                      </span>
                     </ng-container>
                     
                     <!-- Editable Fields for Cartera / Observaciones globally -->
@@ -171,12 +182,13 @@ import { environment } from '../../../environments/environment';
                     <span *ngSwitchCase="'valor_reserva'">{{ formatMoney(row[col]) }}</span>
                     <span *ngSwitchCase="'descuento_financiero'">{{ formatMoney(row[col]) }}</span>
                     
-                    <!-- Factoring Pagos -->
-                    <span *ngSwitchCase="'valor_titulo'">{{ formatMoney(row[col]) }}</span>
-                    <span *ngSwitchCase="'valor_nominal'">{{ formatMoney(row[col]) }}</span>
-                    <span *ngSwitchCase="'monto_pagado'">{{ formatMoney(row[col]) }}</span>
-                    <span *ngSwitchCase="'saldo_restante'">{{ formatMoney(row[col]) }}</span>
                     <span *ngSwitchCase="'total_recaudado_comprobante'">{{ formatMoney(row[col]) }}</span>
+                    
+                    <!-- Settlement Fields -->
+                    <span *ngSwitchCase="'intereses_diarios'">{{ formatMoney(row[col]) }}</span>
+                    <span *ngSwitchCase="'intereses_pagados'">{{ formatMoney(row[col]) }}</span>
+                    <span *ngSwitchCase="'devolucion_descuento'">{{ formatMoney(row[col]) }}</span>
+                    <span *ngSwitchCase="'margen_reserva'">{{ formatMoney(row[col]) }}</span>
                     
                     <!-- Confirming -->
                     <span *ngSwitchCase="'reembolso_g_desembolso'">{{ formatMoney(row[col]) }}</span>
@@ -354,6 +366,18 @@ import { environment } from '../../../environments/environment';
 
       &:hover { background: #0f172a; }
       &.loading .icon { animation: spin 1s linear infinite; }
+      &.blue { background: #3b82f6; &:hover { background: #2563eb; } }
+      &.green { background: #10b981; &:hover { background: #059669; } }
+    }
+
+    .status-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      &.pending { background: #fef3c7; color: #92400e; }
+      &.done { background: #dcfce7; color: #166534; }
     }
 
     /* Content Card & Table Styling */
@@ -583,6 +607,7 @@ export class SheetsComponent implements OnInit {
   categoria = 'cartera';
   data: any[] = [];
   isLoading = false;
+  isReconciling = false;
   math = Math;
   saveStatus: { [id: number]: 'saving' | 'success' | 'error' | null } = {};
   sectors: any[] = [];
@@ -648,6 +673,45 @@ export class SheetsComponent implements OnInit {
         console.error('Error fetching database data', error);
         this.data = [];
         this.isLoading = false;
+      }
+    });
+  }
+
+  reconcileSettlement() {
+    Swal.fire({
+      title: 'Cruzar Operaciones',
+      text: '¿Deseas iniciar el cruce de liquidaciones para los pagos pendientes?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cruzar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#3b82f6'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.isReconciling = true;
+        Swal.fire({
+          title: 'Procesando...',
+          text: 'Estamos cruzando la información con las operaciones de Factoring.',
+          allowOutsideClick: false,
+          didOpen: () => { Swal.showLoading(); }
+        });
+
+        this.http.post<any>(`${this.baseUrl}/settlement/reconcile`, {}).subscribe({
+          next: (res) => {
+            this.isReconciling = false;
+            Swal.fire({
+              title: '¡Cruce Completado!',
+              text: `${res.processed_count} pagos fueron liquidados exitosamente.`,
+              icon: 'success'
+            });
+            this.loadHistory();
+          },
+          error: (err) => {
+            console.error('Reconciliation error', err);
+            this.isReconciling = false;
+            Swal.fire('Error', 'No se pudo completar el cruce de información.', 'error');
+          }
+        });
       }
     });
   }
@@ -763,6 +827,9 @@ export class SheetsComponent implements OnInit {
     if (key === 'valor_desembolso') return 'DESEMBOLSO';
     if (key === 'numero_radicado') return 'RADICADO';
     if (key === 'valor_aprobado') return 'VALOR PRESENTE';
+    if (key === 'devolucion_descuento') return 'DEVOLUCIÓN DESC.';
+    if (key === 'margen_reserva') return 'MARGEN RESERVA';
+    if (key === 'estado_liquidacion') return 'ESTADO';
     return key.replace(/_/g, ' ').toUpperCase();
   }
 
