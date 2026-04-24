@@ -37,62 +37,27 @@ export class UploadComponent {
     }
 
     this.cargando = true;
-    this.mensaje = 'Enviando y procesando información...';
+    this.mensaje = 'Enviando archivo al servidor...';
     this.status = '';
 
-    // Creamos el FormData para enviar el binario y la categoría
     const formData = new FormData();
-    formData.append('data', this.selectedFile);
+    // Laravel espera el campo 'file'
+    formData.append('file', this.selectedFile);
     formData.append('categoria', this.categoria);
 
-    // Utilizamos la URL global de los environments
-    const webhookUrl = environment.n8nWebhookUrl;
+    // Llamamos a nuestra propia API en lugar de n8n directamente
+    const apiUrl = `${environment.apiUrl}/uploads`;
 
-    this.http.post(webhookUrl, formData).subscribe({
+    this.http.post(apiUrl, formData).subscribe({
       next: (response: any) => {
-        console.log('Respuesta de n8n:', response);
-
-        // n8n often returns an array. Let's check if any item is an error item
-        const responseArray = Array.isArray(response) ? response : [response];
-        const errorItem = responseArray.find(item => item && (item.errorMessage || item.error));
-
-        if (errorItem) {
-          this.mensaje = 'Error desde n8n: ' + (errorItem.errorMessage || errorItem.error);
-          this.status = 'error';
-          this.cargando = false;
-          return;
-        }
-
-        if (response && response.message) {
-          this.mensaje = response.message;
-        } else if (responseArray.length > 0) {
-          this.mensaje = 'Procesado con éxito y guardado en la Base de Datos';
-        } else {
-          this.mensaje = 'El proceso terminó sin devolver datos (podría ser un archivo vacío or filtrado)';
-        }
+        console.log('Respuesta del servidor:', response);
+        this.mensaje = 'Archivo recibido y enviado a procesamiento interno con éxito.';
         this.status = 'success';
         this.cargando = false;
-        // Keep the file selected so the user knows what they uploaded, 
-        // but the 'cargando' state is off.
       },
       error: (err) => {
         console.error('Error completo:', err);
-
-        // n8n envía los errores HTTP 500 con un body que Angular envuelve en HttpErrorResponse
-        let errMsg = 'Hubo un error en el servidor. Revisa n8n.';
-
-        if (err.error) {
-          if (err.error.errorMessage) {
-            errMsg = 'Falló n8n: ' + err.error.errorMessage;
-            if (err.error.errorDescription) {
-              errMsg += ' | ' + err.error.errorDescription;
-            }
-          } else if (err.error.message) {
-            errMsg = err.error.message;
-          }
-        }
-
-        this.mensaje = errMsg;
+        this.mensaje = 'Error al subir el archivo al servidor: ' + (err.error?.message || err.message);
         this.status = 'error';
         this.cargando = false;
       }

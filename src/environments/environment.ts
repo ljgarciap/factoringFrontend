@@ -1,5 +1,5 @@
 export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:8000/api',
-  n8nWebhookUrl: 'http://localhost:5678/webhook/factoring-upload'
+  production: true,
+  apiUrl: 'http://auto.proseguirliquidez.com:8000/api',
+  n8nWebhookUrl: 'http://auto.proseguirliquidez.com:8000/n8n/webhook/factoring-upload'
 };
