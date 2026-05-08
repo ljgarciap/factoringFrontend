@@ -26,8 +26,9 @@ import Swal from 'sweetalert2';
           <thead>
             <tr>
               <th>Nombre</th>
+              <th>Documento</th>
               <th>Email</th>
-              <th>Roles</th>
+              <th>Rol</th>
               <th class="text-right">Acciones</th>
             </tr>
           </thead>
@@ -39,9 +40,15 @@ import Swal from 'sweetalert2';
                   <span class="name">{{ user.name }}</span>
                 </div>
               </td>
-              <td>{{ user.email }}</td>
               <td>
-                <div class="roles-badges">
+                <div class="doc-cell">
+                  <span class="doc-type">{{ user.document_type?.codigo }}</span>
+                  <span class="doc-num">{{ user.numero_documento }}</span>
+                </div>
+              </td>
+              <td>{{ user.email || '-' }}</td>
+              <td>
+                <div class="roles-badges" style="display: flex; gap: 4px; flex-wrap: wrap;">
                   <span *ngFor="let role of user.roles" class="pro-status" [ngClass]="role">
                     {{ role | titlecase }}
                   </span>
@@ -82,59 +89,93 @@ import Swal from 'sweetalert2';
     .pro-status.cliente { background: #F3E5F5; color: #9C27B0; }
 
     .actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .doc-cell { display: flex; flex-direction: column; .doc-type { font-size: 0.7rem; font-weight: 800; color: var(--primary); } .doc-num { font-size: 0.9rem; color: var(--text-main); } }
   `]
 })
 export class UserManagementComponent implements OnInit {
   users: any[] = [];
+  documentTypes: any[] = [];
   apiUrl = `${environment.apiUrl}/users`;
 
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
     this.loadUsers();
+    this.loadDocumentTypes();
   }
 
   loadUsers() {
     this.http.get<any[]>(this.apiUrl).subscribe(data => this.users = data);
   }
 
+  loadDocumentTypes() {
+    this.http.get<any[]>(`${environment.apiUrl}/document-types`).subscribe(data => this.documentTypes = data);
+  }
+
   async openModal(user: any = null) {
     const isEdit = !!user;
+    
+    // Build options for document types
+    const docOptions = this.documentTypes.map(t => 
+      `<option value="${t.id}" ${user?.tipo_documento_id === t.id ? 'selected' : ''}>${t.codigo} - ${t.nombre}</option>`
+    ).join('');
+
     const { value: formValues } = await Swal.fire({
       title: isEdit ? 'Editar Usuario' : 'Nuevo Usuario',
       html: `
         <div class="swal-form" style="text-align: left;">
+          <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 15px; margin-bottom: 1rem;">
+             <div class="pro-input-group">
+                <label style="display:block; margin-bottom:5px; font-weight:600;">Tipo Docto.</label>
+                <select id="swal-type" class="pro-input" style="width:100%">
+                   ${docOptions}
+                </select>
+             </div>
+             <div class="pro-input-group">
+                <label style="display:block; margin-bottom:5px; font-weight:600;">Número Documento</label>
+                <input id="swal-doc" class="pro-input" style="width:100%" value="${user?.numero_documento || ''}" 
+                       placeholder="Ej: 123456" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+             </div>
+          </div>
+
           <div class="pro-input-group" style="margin-bottom: 1rem;">
             <label style="display:block; margin-bottom:5px; font-weight:600;">Nombre Completo</label>
             <input id="swal-name" class="pro-input" style="width:100%" value="${user?.name || ''}">
           </div>
+
           <div class="pro-input-group" style="margin-bottom: 1rem;">
-            <label style="display:block; margin-bottom:5px; font-weight:600;">Correo Electrónico</label>
+            <label style="display:block; margin-bottom:5px; font-weight:600;">Correo Electrónico (Opcional)</label>
             <input id="swal-email" type="email" class="pro-input" style="width:100%" value="${user?.email || ''}">
           </div>
-          <div class="pro-input-group" style="margin-bottom: 1rem;">
-            <label style="display:block; margin-bottom:5px; font-weight:600;">Contraseña ${isEdit ? '(Opcional)' : ''}</label>
-            <input id="swal-pass" type="password" class="pro-input" style="width:100%" placeholder="${isEdit ? 'Dejar en blanco para mantener' : ''}">
-          </div>
-          <div class="pro-input-group">
-            <label style="display:block; margin-bottom:10px; font-weight:600;">Roles Asignados</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <label><input type="checkbox" class="swal-role" value="superadmin" ${user?.roles?.includes('superadmin') ? 'checked' : ''}> Superadmin</label>
-              <label><input type="checkbox" class="swal-role" value="gerente" ${user?.roles?.includes('gerente') ? 'checked' : ''}> Gerente</label>
-              <label><input type="checkbox" class="swal-role" value="operativo" ${user?.roles?.includes('operativo') ? 'checked' : ''}> Operativo</label>
-              <label><input type="checkbox" class="swal-role" value="cliente" ${user?.roles?.includes('cliente') ? 'checked' : ''}> Cliente</label>
-            </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 1rem;">
+             <div class="pro-input-group">
+                <label style="display:block; margin-bottom:5px; font-weight:600;">Contraseña ${isEdit ? '(Opcional)' : ''}</label>
+                <input id="swal-pass" type="password" class="pro-input" style="width:100%" placeholder="${isEdit ? 'Mantener actual' : 'Mín. 8 caracteres'}">
+             </div>
+             <div class="pro-input-group">
+                <label style="display:block; margin-bottom:10px; font-weight:600;">Roles / Perfiles</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem;">
+                   <label><input type="checkbox" class="swal-role" value="operativo" ${user?.roles?.includes('operativo') ? 'checked' : ''}> Operativo</label>
+                   <label><input type="checkbox" class="swal-role" value="gerente" ${user?.roles?.includes('gerente') ? 'checked' : ''}> Gerente</label>
+                   <label><input type="checkbox" class="swal-role" value="superadmin" ${user?.roles?.includes('superadmin') ? 'checked' : ''}> Admin</label>
+                   <label><input type="checkbox" class="swal-role" value="cliente" ${user?.roles?.includes('cliente') ? 'checked' : ''}> Cliente</label>
+                </div>
+             </div>
           </div>
         </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
       confirmButtonText: isEdit ? 'Actualizar' : 'Crear Usuario',
+      customClass: { popup: 'modern-swal-popup' },
       preConfirm: () => {
         const checkboxes = document.querySelectorAll('.swal-role:checked') as NodeListOf<HTMLInputElement>;
         const roles = Array.from(checkboxes).map(cb => cb.value);
-        
+
         return {
+          tipo_documento_id: (document.getElementById('swal-type') as HTMLSelectElement).value,
+          numero_documento: (document.getElementById('swal-doc') as HTMLInputElement).value,
           name: (document.getElementById('swal-name') as HTMLInputElement).value,
           email: (document.getElementById('swal-email') as HTMLInputElement).value,
           password: (document.getElementById('swal-pass') as HTMLInputElement).value,
@@ -144,8 +185,8 @@ export class UserManagementComponent implements OnInit {
     });
 
     if (formValues) {
-      if (!formValues.name || !formValues.email || (!isEdit && !formValues.password)) {
-        Swal.fire('Error', 'Por favor completa los campos requeridos.', 'error');
+      if (!formValues.name || !formValues.numero_documento || (!isEdit && !formValues.password)) {
+        Swal.fire('Error', 'Por favor completa los campos obligatorios (Documento, Nombre, Contraseña).', 'error');
         return;
       }
 

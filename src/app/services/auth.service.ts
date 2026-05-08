@@ -5,9 +5,21 @@ import { BehaviorSubject, Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class AuthService {
+  private safeParse(key: string, defaultValue: any): any {
+    const data = localStorage.getItem(key);
+    if (!data || data === 'undefined' || data === 'null') {
+      return defaultValue;
+    }
+    try {
+      return JSON.parse(data);
+    } catch (e) {
+      return defaultValue;
+    }
+  }
+
   private activeRoleSubject = new BehaviorSubject<string | null>(localStorage.getItem('active_role'));
-  private allRolesSubject = new BehaviorSubject<string[]>(JSON.parse(localStorage.getItem('all_roles') || '[]'));
-  private userSubject = new BehaviorSubject<any>(JSON.parse(localStorage.getItem('user_data') || 'null'));
+  private allRolesSubject = new BehaviorSubject<string[]>(this.safeParse('all_roles', []));
+  private userSubject = new BehaviorSubject<any>(this.safeParse('user_data', null));
   
   public activeRole$: Observable<string | null> = this.activeRoleSubject.asObservable();
   public allRoles$: Observable<string[]> = this.allRolesSubject.asObservable();
@@ -15,17 +27,17 @@ export class AuthService {
 
   constructor() {}
 
-  login(token: string, user: any): void {
+  login(token: string, user: any, roles: string[]): void {
     localStorage.setItem('auth_token', token);
     localStorage.setItem('user_data', JSON.stringify(user));
-    localStorage.setItem('all_roles', JSON.stringify(user.roles));
+    localStorage.setItem('all_roles', JSON.stringify(roles));
     
     this.userSubject.next(user);
-    this.allRolesSubject.next(user.roles);
+    this.allRolesSubject.next(roles);
 
     // If only one role, set it as active immediately
-    if (user.roles.length === 1) {
-      this.setActiveRole(user.roles[0]);
+    if (roles && roles.length === 1) {
+      this.setActiveRole(roles[0]);
     }
   }
 

@@ -21,10 +21,12 @@ import { AuthService } from '../../../services/auth.service';
 
         <form (ngSubmit)="onLogin()" #loginForm="ngForm" class="login-form" *ngIf="!showRoleSelector">
           <div class="pro-input-group">
-            <label>Correo Electrónico</label>
+            <label>Número de Documento</label>
             <div class="input-with-icon">
-              <span class="material-symbols-outlined">mail</span>
-              <input type="email" [(ngModel)]="credentials.email" name="email" required placeholder="ejemplo@test.com" class="pro-input">
+              <span class="material-symbols-outlined">badge</span>
+              <input type="text" [(ngModel)]="credentials.numero_documento" name="numero_documento" required 
+                     placeholder="Ingresa tu documento" class="pro-input" inputmode="numeric" pattern="[0-9]*"
+                     (keypress)="onlyNumbers($event)">
             </div>
           </div>
 
@@ -166,7 +168,7 @@ import { AuthService } from '../../../services/auth.service';
   `]
 })
 export class LoginComponent {
-  credentials = { email: '', password: '' };
+  credentials = { numero_documento: '', password: '' };
   isLoading = false;
   errorMessage = '';
   showRoleSelector = false;
@@ -184,10 +186,10 @@ export class LoginComponent {
 
     this.http.post<any>(`${environment.apiUrl}/login`, this.credentials).subscribe({
       next: (response) => {
-        this.authService.login(response.token, response.user);
+        this.authService.login(response.token, response.user, response.roles);
         
-        if (response.user.roles.length > 1) {
-          this.availableRoles = response.user.roles;
+        if (response.roles && response.roles.length > 1) {
+          this.availableRoles = response.roles;
           this.showRoleSelector = true;
           this.isLoading = false;
         } else {
@@ -204,5 +206,13 @@ export class LoginComponent {
   selectRole(role: string): void {
     this.authService.setActiveRole(role);
     this.router.navigate(['/']);
+  }
+
+  onlyNumbers(event: any): boolean {
+    const charCode = (event.which) ? event.which : event.keyCode;
+    if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+      return false;
+    }
+    return true;
   }
 }

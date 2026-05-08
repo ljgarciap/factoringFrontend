@@ -48,19 +48,22 @@ Chart.register(...registerables);
         <div class="header-actions">
           <div class="pro-tabs">
             <button (click)="setTab('cartera')" [class.active]="currentTab === 'cartera'">
-              <span class="material-symbols-outlined">payments</span> Cartera
+              <span class="material-symbols-outlined">payments</span> Cartera CYF
             </button>
-            <button (click)="setTab('pagos')" [class.active]="currentTab === 'pagos'">
-              <span class="material-symbols-outlined">receipt_long</span> Pagos
+            <button (click)="setTab('cartera_factoring')" [class.active]="currentTab === 'cartera_factoring'">
+              <span class="material-symbols-outlined">analytics</span> Cartera Factoring
             </button>
             <button (click)="setTab('factoring')" [class.active]="currentTab === 'factoring'">
               <span class="material-symbols-outlined">account_balance</span> Factoring
             </button>
-            <button (click)="setTab('confirming')" [class.active]="currentTab === 'confirming'">
-              <span class="material-symbols-outlined">verified_user</span> Confirming
+            <button (click)="setTab('pagos')" [class.active]="currentTab === 'pagos'">
+              <span class="material-symbols-outlined">receipt_long</span> Pagos Factoring
             </button>
             <button (click)="setTab('compraventa')" [class.active]="currentTab === 'compraventa'">
               <span class="material-symbols-outlined">assignment</span> Compraventa
+            </button>
+            <button (click)="setTab('pagos_compraventa')" [class.active]="currentTab === 'pagos_compraventa'">
+              <span class="material-symbols-outlined">paid</span> Pagos Compraventa
             </button>
           </div>
 
@@ -113,20 +116,20 @@ Chart.register(...registerables);
                 <div class="footer">Cartera activa gestionada</div>
               </div>
             </div>
-            <div class="kpi-card pro-card orange">
+            <div class="kpi-card pro-card orange" (click)="navigateToSheets('cartera', 'vencido')">
               <div class="kpi-icon"><span class="material-symbols-outlined">running_with_errors</span></div>
               <div class="kpi-body">
-                <label>Índice de Mora</label>
-                <div class="value">{{ stats.cartera.mora_index }}%</div>
-                <div class="footer">Sobre exposición total</div>
+                <label>Valor Vencido</label>
+                <div class="value">{{ formatMoney(stats.cartera.total_vencido) }}</div>
+                <div class="footer">Pendiente por recaudar</div>
               </div>
             </div>
             <div class="kpi-card pro-card red" (click)="navigateToSheets('cartera', 'mora')">
               <div class="kpi-icon"><span class="material-symbols-outlined">error</span></div>
               <div class="kpi-body">
-                <label>Capital en Mora</label>
+                <label>Valor Mora</label>
                 <div class="value">{{ formatMoney(stats.cartera.total_mora) }}</div>
-                <div class="footer">Requiere gestión inmediata</div>
+                <div class="footer">Días de retraso > 30</div>
               </div>
             </div>
           </div>
@@ -238,7 +241,20 @@ Chart.register(...registerables);
                 <canvas baseChart
                   [data]="paymentTimelineChartData"
                   [options]="barChartOptions"
-                  [type]="'line'">
+                  [type]="'bar'">
+                </canvas>
+              </div>
+            </div>
+
+            <div class="card chart-container span-12">
+              <div class="card-header">
+                <h3>Recaudación Diaria por Cliente</h3>
+              </div>
+              <div class="chart-box tall">
+                <canvas baseChart
+                  [data]="dailyPaymentsChartData"
+                  [options]="barChartOptions"
+                  [type]="'bar'">
                 </canvas>
               </div>
             </div>
@@ -265,8 +281,9 @@ Chart.register(...registerables);
             <div class="kpi-card pro-card orange">
               <div class="kpi-icon"><span class="material-symbols-outlined">percent</span></div>
               <div class="kpi-body">
-                <label>Tasa Media</label>
-                <div class="value">{{ stats.factoring.avg_tasa }}%</div>
+                <label>Tasa Ponderada</label>
+                <div class="value">{{ stats.factoring.tasa_ponderada }}%</div>
+                <div class="footer">Promedio por desembolso</div>
               </div>
             </div>
             <div class="kpi-card pro-card purple">
@@ -303,13 +320,20 @@ Chart.register(...registerables);
                     <th class="text-right">Monto</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr *ngFor="let v of $any(stats.factoring).vencimientos | slice:0:6">
-                    <td class="truncate">{{ $any(v).pagador }}</td>
-                    <td class="text-right bold">{{ formatMoney($any(v).monto) }}</td>
-                  </tr>
-                </tbody>
               </table>
+            </div>
+
+            <div class="card chart-container span-12">
+              <div class="card-header">
+                <h3>Distribución de Tasas de Colocación</h3>
+              </div>
+              <div class="chart-box tall">
+                 <canvas baseChart
+                  [data]="tasaDistributionChartData"
+                  [options]="pieChartOptions"
+                  [type]="'pie'">
+                </canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -746,6 +770,21 @@ export class DashboardComponent implements OnInit {
     }]
   };
 
+  // Chart: Pagos Diarios por Cliente
+  public dailyPaymentsChartData: ChartData<'bar'> = {
+    labels: [],
+    datasets: []
+  };
+
+  // Chart: Distribución de Tasas (Factoring)
+  public tasaDistributionChartData: ChartData<'pie'> = {
+    labels: [],
+    datasets: [{
+      data: [],
+      backgroundColor: ['#5e72e4', '#2dce89', '#fb6340', '#11cdef', '#f5365c', '#8965e0', '#ffd600']
+    }]
+  };
+
   // Compraventa Charts
   public topVendedoresChartData: ChartData<'doughnut'> = {
     labels: [],
@@ -1004,6 +1043,29 @@ export class DashboardComponent implements OnInit {
       if (this.stats.factoring.payment_distribution) {
         this.paymentDistributionChartData.labels = this.stats.factoring.payment_distribution.map((d: any) => d.cliente);
         this.paymentDistributionChartData.datasets[0].data = this.stats.factoring.payment_distribution.map((d: any) => parseFloat(d.total));
+      }
+
+      if (this.stats.factoring.tasa_distribution) {
+        this.tasaDistributionChartData.labels = this.stats.factoring.tasa_distribution.map((t: any) => t.tasa + '%');
+        this.tasaDistributionChartData.datasets[0].data = this.stats.factoring.tasa_distribution.map((t: any) => parseFloat(t.total));
+      }
+
+      if (this.stats.factoring.daily_payments) {
+        const daily = this.stats.factoring.daily_payments;
+        const uniqueDates = [...new Set(daily.map((d: any) => d.fecha))].sort() as string[];
+        const uniqueClients = [...new Set(daily.map((d: any) => d.cliente))] as string[];
+
+        this.dailyPaymentsChartData.labels = uniqueDates.map(d => new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }));
+        this.dailyPaymentsChartData.datasets = uniqueClients.map((client, idx) => {
+          return {
+            label: client,
+            data: uniqueDates.map(date => {
+              const match = daily.find((d: any) => d.fecha === date && d.cliente === client);
+              return match ? parseFloat(match.total) : 0;
+            }),
+            backgroundColor: (this.activityChartData.datasets[0] as any).backgroundColor![idx % 7]
+          };
+        });
       }
     }
 

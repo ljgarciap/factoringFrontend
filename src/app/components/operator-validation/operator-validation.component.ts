@@ -115,6 +115,10 @@ import Swal from 'sweetalert2';
                     <button class="btn-pro secondary sm icon-only" (click)="download(upload)" title="Descargar Archivo">
                       <span class="material-symbols-outlined">download</span>
                     </button>
+                    <button *ngIf="(userRole === 'cliente' && upload.status === 'pendiente') || userRole === 'superadmin'" 
+                            class="btn-pro danger sm icon-only" (click)="deleteUpload(upload)" title="Eliminar Archivo">
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
   
                     <div class="status-indicator success" *ngIf="upload.status === 'aprobado'">
                       <span class="material-symbols-outlined">check_circle</span>
@@ -410,11 +414,32 @@ export class OperatorValidationComponent implements OnInit {
             window.URL.revokeObjectURL(fileUrl);
           }
         });
-      },
-      error: (err) => {
-        console.error('Error fetching file for preview:', err);
-        Swal.fire('Error', 'No se pudo obtener el archivo para la previsualización.', 'error');
       }
     });
+  }
+
+  async deleteUpload(upload: any) {
+    const { isConfirmed } = await Swal.fire({
+      title: '¿Estás seguro?',
+      text: `Se eliminará el archivo "${upload.original_name}" permanentemente.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#E53E3E'
+    });
+
+    if (isConfirmed) {
+      this.http.delete(`${environment.apiUrl}/uploads/${upload.id}`).subscribe({
+        next: () => {
+          this.loadUploads();
+          Swal.fire('Eliminado', 'El archivo ha sido borrado.', 'success');
+        },
+        error: (err) => {
+          console.error('Error deleting upload:', err);
+          Swal.fire('Error', 'No se pudo eliminar el archivo.', 'error');
+        }
+      });
+    }
   }
 }

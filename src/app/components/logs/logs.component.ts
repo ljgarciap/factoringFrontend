@@ -89,8 +89,14 @@ import Swal from 'sweetalert2';
                   <button class="action-btn view-btn" (click)="openDetails(log)" title="Ver Detalles">
                     👁️
                   </button>
-                  <button *ngIf="canRetry(log)" class="action-btn retry-btn" (click)="retryLog(log)" title="Reintentar">
+                  <button class="action-btn retry-btn" (click)="retryLog(log)" title="Reintentar">
                     🔄
+                  </button>
+                  <button *ngIf="userRole === 'superadmin' && log.filename" class="action-btn mass-delete-btn" (click)="deleteFileData(log)" title="Borrar datos de este archivo">
+                    🔥
+                  </button>
+                  <button *ngIf="userRole === 'superadmin'" class="action-btn delete-btn" (click)="deleteLog(log)" title="Eliminar Log">
+                    🗑️
                   </button>
                 </td>
               </tr>
@@ -351,6 +357,7 @@ import Swal from 'sweetalert2';
 export class LogsComponent implements OnInit {
   logs: any[] = [];
   isLoading = false;
+  userRole: string | null = '';
   math = Math;
 
   // Parámetros de tabla
@@ -367,6 +374,7 @@ export class LogsComponent implements OnInit {
   constructor(private http: HttpClient) { }
 
   ngOnInit() {
+    this.userRole = localStorage.getItem('active_role');
     this.loadLogs();
   }
 
@@ -486,6 +494,78 @@ export class LogsComponent implements OnInit {
             console.error(err);
             this.showToast(err.error?.message || 'Hubo un error al reintentar el log', 'error');
             this.loadLogs();
+          }
+        });
+      }
+    });
+  }
+
+  deleteLog(log: any) {
+    Swal.fire({
+      title: '¿Eliminar registro?',
+      text: `Se borrará el log #${log.id} permanentemente.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.http.delete(`${this.apiUrl}/${log.id}`).subscribe({
+          next: (res: any) => {
+            this.showToast(res.message || 'Log eliminado con éxito', 'success');
+            this.loadLogs();
+          },
+          error: (err) => {
+            console.error(err);
+            this.showToast(err.error?.message || 'Error al eliminar el log', 'error');
+          }
+        });
+      }
+    });
+  }
+
+  deleteFileData(log: any) {
+    Swal.fire({
+      title: '¿Borrar TODOS los datos de este archivo?',
+      text: `Esta acción eliminará todos los registros de cartera, factoring, etc., asociados al archivo "${log.filename}". Esta acción no se puede deshacer.`,
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Sí, BORRAR TODO',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.isLoading = true;
+        // First find the upload ID by filename
+        this.http.get<any>(`${environment.apiUrl}/uploads?search=${log.filename}`).subscribe({
+          next: (res) => {
+            const upload = res.data ? res.data.find((u: any) => u.filename === log.filename) : null;
+            if (!upload) {
+              this.showToast('No se encontró el registro del archivo para este log', 'error');
+              this.isLoading = false;
+              return;
+            }
+
+            // Now delete by upload ID
+            this.http.delete(`${environment.apiUrl}/history/by-upload/${upload.id}`).subscribe({
+              next: (delRes: any) => {
+                Swal.fire('¡Limpieza Completada!', `${delRes.deleted_records} registros fueron eliminados exitosamente.`, 'success');
+                this.isLoading = false;
+              },
+              error: (err) => {
+                console.error(err);
+                this.showToast('Error al intentar el borrado masivo', 'error');
+                this.isLoading = false;
+              }
+            });
+          },
+          error: (err) => {
+            console.error(err);
+            this.showToast('Error al buscar el archivo', 'error');
+            this.isLoading = false;
           }
         });
       }

@@ -96,6 +96,7 @@ import Swal from 'sweetalert2';
                     </span>
                   </div>
                 </th>
+                <th class="actions-header">ACCIONES</th>
               </tr>
             </thead>
             <tbody>
@@ -201,6 +202,11 @@ import Swal from 'sweetalert2';
                     
                     <span *ngSwitchDefault>{{ row[col] !== null ? row[col] : '-' }}</span>
                   </ng-container>
+                </td>
+                <td class="text-right actions-cell">
+                  <button class="btn-delete" (click)="deleteRecord(row)" title="Eliminar Registro">
+                    🗑️
+                  </button>
                 </td>
               </tr>
               <tr *ngIf="data.length === 0 && !isLoading">
@@ -530,6 +536,32 @@ import Swal from 'sweetalert2';
         color: #94a3b8;
         font-style: italic;
       }
+
+      .actions-header {
+        text-align: right;
+        padding-right: 24px !important;
+        width: 80px;
+      }
+
+      .actions-cell {
+        text-align: right;
+        padding-right: 24px !important;
+      }
+
+      .btn-delete {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 6px;
+        transition: background 0.2s;
+        color: #ef4444;
+
+        &:hover {
+          background: #fef2f2;
+        }
+      }
     }
 
     /* Footer Pagination Styling */
@@ -745,6 +777,35 @@ export class SheetsComponent implements OnInit {
     });
   }
 
+  deleteRecord(row: any) {
+    Swal.fire({
+      title: '¿Eliminar registro?',
+      text: `Se borrará este registro de ${this.categoria} permanentemente.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.isLoading = true;
+        const url = `${this.baseUrl}/history/${this.categoria}/${row.id}`;
+        this.http.delete(url).subscribe({
+          next: () => {
+            Swal.fire('¡Eliminado!', 'El registro ha sido borrado con éxito.', 'success');
+            this.loadHistory();
+          },
+          error: (err) => {
+            console.error('Error deleting record', err);
+            this.isLoading = false;
+            Swal.fire('Error', 'No se pudo eliminar el registro.', 'error');
+          }
+        });
+      }
+    });
+  }
+
   onSearch() {
     this.currentPage = 1;
     this.loadHistory();
@@ -801,12 +862,13 @@ export class SheetsComponent implements OnInit {
         'id', 'numero_radicado', 'cliente', 'identificacion',
         'actividad_economica', 'sector_economico', 'ciudad',
         'valor_desembolso', 'saldo_capital',
-        'vencido', 'dias_vencido', 'valor_vencido', 'tiene_mora', 'valor_mora'
+        'vencido', 'dias_vencido', 'valor_vencido', 'tiene_mora', 'valor_mora',
+        'fecha_vencimiento_capital', 'estado_capital'
       ];
 
       // Filter out keys we don't want and add remaining keys at the end
       const filtered = prioritized.filter(k => allKeys.includes(k));
-      const excluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'estado_capital', 'fecha_vencimiento_capital', 'observaciones'];
+      const excluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'observaciones'];
       const others = allKeys.filter(k => !prioritized.includes(k) && !excluded.includes(k));
 
       const finalCols = [...filtered, ...others];
@@ -816,7 +878,7 @@ export class SheetsComponent implements OnInit {
       return finalCols;
     } else {
       // Ensure 'observaciones' appears at the end
-      const commonExcluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'estado_capital', 'fecha_vencimiento_capital', 'observaciones', 'client_upload_id'];
+      const commonExcluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'observaciones', 'client_upload_id'];
       const fields = allKeys.filter(k => !commonExcluded.includes(k));
       fields.push('observaciones');
       return fields;
