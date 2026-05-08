@@ -31,7 +31,14 @@ import Swal from 'sweetalert2';
             [class.active]="categoria === 'cartera'" 
             class="tab-btn"
           >
-            Cartera
+            Cartera CYF
+          </button>
+          <button 
+            (click)="setCategory('cartera_factoring')" 
+            [class.active]="categoria === 'cartera_factoring'" 
+            class="tab-btn"
+          >
+            Cartera Factoring
           </button>
           <button 
             (click)="setCategory('op')" 
@@ -45,21 +52,21 @@ import Swal from 'sweetalert2';
             [class.active]="categoria === 'pagos'" 
             class="tab-btn"
           >
-            Pagos
+            Pagos Factoring
           </button>
           <button 
             (click)="setCategory('opf')" 
             [class.active]="categoria === 'opf'" 
             class="tab-btn"
           >
-            Confirming
+            CompraVenta
           </button>
           <button 
-            (click)="setCategory('compraventa')" 
-            [class.active]="categoria === 'compraventa'" 
+            (click)="setCategory('pagos_compraventa')" 
+            [class.active]="categoria === 'pagos_compraventa'" 
             class="tab-btn"
           >
-            Compraventa
+            Pagos CompraVenta
           </button>
         </div>
         
@@ -199,6 +206,14 @@ import Swal from 'sweetalert2';
                     
                     <!-- Compraventa -->
                     <span *ngSwitchCase="'valor'">{{ formatMoney(row[col]) }}</span>
+
+                    <!-- Pagos Compraventa -->
+                    <span *ngSwitchCase="'valor_factura'">{{ formatMoney(row[col]) }}</span>
+                    <span *ngSwitchCase="'valor_recaudado'">{{ formatMoney(row[col]) }}</span>
+                    <span *ngSwitchCase="'capital_pagado'">{{ formatMoney(row[col]) }}</span>
+                    <span *ngSwitchCase="'total_pagado'">{{ formatMoney(row[col]) }}</span>
+                    <span *ngSwitchCase="'total_recaudo'">{{ formatMoney(row[col]) }}</span>
+                    <span *ngSwitchCase="'valor_descuento'">{{ formatMoney(row[col]) }}</span>
                     
                     <span *ngSwitchDefault>{{ row[col] !== null ? row[col] : '-' }}</span>
                   </ng-container>
@@ -210,8 +225,13 @@ import Swal from 'sweetalert2';
                 </td>
               </tr>
               <tr *ngIf="data.length === 0 && !isLoading">
-                <td [attr.colspan]="getColumns().length" class="empty-row">
-                  No se encontraron registros activos.
+                <td [attr.colspan]="getColumns().length + 1" class="empty-row">
+                  <ng-container *ngIf="categoria === 'cartera_factoring'">
+                    🚧 Cartera Factoring — Módulo en construcción. Próximamente disponible.
+                  </ng-container>
+                  <ng-container *ngIf="categoria !== 'cartera_factoring'">
+                    No se encontraron registros activos.
+                  </ng-container>
                 </td>
               </tr>
             </tbody>
@@ -686,7 +706,7 @@ export class SheetsComponent implements OnInit {
 
   loadHistory() {
     this.isLoading = true;
-    const url = new URL(`${this.baseUrl}/history/${this.categoria}`);
+    const url = new URL(`${this.baseUrl}/history/${this.categoria}`, window.location.origin);
     if (this.searchTerm) url.searchParams.append('search', this.searchTerm);
     if (this.sortBy) url.searchParams.append('sortBy', this.sortBy);
     if (this.sortDir) url.searchParams.append('sortDir', this.sortDir);
@@ -823,6 +843,15 @@ export class SheetsComponent implements OnInit {
 
   setCategory(cat: string) {
     this.categoria = cat;
+    if (cat === 'cartera_factoring') {
+      // Tab vacía por ahora - no llama al backend
+      this.searchTerm = '';
+      this.currentPage = 1;
+      this.data = [];
+      this.totalItems = 0;
+      this.isLoading = false;
+      return;
+    }
     this.onCategoryChange();
   }
 
@@ -861,9 +890,8 @@ export class SheetsComponent implements OnInit {
       const prioritized = [
         'id', 'numero_radicado', 'cliente', 'identificacion',
         'actividad_economica', 'sector_economico', 'ciudad',
-        'valor_desembolso', 'saldo_capital',
-        'vencido', 'dias_vencido', 'valor_vencido', 'tiene_mora', 'valor_mora',
-        'fecha_vencimiento_capital', 'estado_capital'
+        'saldo_capital', 'vencido', 'dias_vencido', 'valor_vencido', 'tiene_mora', 'valor_mora',
+        'fecha_vencimiento_capital', 'valor_desembolso'
       ];
 
       // Filter out keys we don't want and add remaining keys at the end
@@ -876,6 +904,18 @@ export class SheetsComponent implements OnInit {
         finalCols.push('observaciones');
       }
       return finalCols;
+    } else if (this.categoria === 'pagos_compraventa') {
+      const prioritized = [
+        'id', 'pago_ref', 'pagador', 'nit_pagador', 'cliente', 'nit_cliente',
+        'fecha_recaudo', 'valor_recaudado', 'capital_pagado', 'total_pagado', 'valor_descuento',
+        'op', 'id_titulo', 'valor_factura', 'fec_inicial', 'fec_final'
+      ];
+      const filtered = prioritized.filter(k => allKeys.includes(k));
+      const excluded = ['updated_at', 'created_at', 'observaciones', 'client_upload_id'];
+      const others = allKeys.filter(k => !prioritized.includes(k) && !excluded.includes(k));
+      const finalCols = [...filtered, ...others];
+      finalCols.push('observaciones');
+      return finalCols;
     } else {
       // Ensure 'observaciones' appears at the end
       const commonExcluded = ['updated_at', 'created_at', 'tipo_garantia', 'estado_garantia', 'garantia_detalle', 'observaciones', 'client_upload_id'];
@@ -887,6 +927,7 @@ export class SheetsComponent implements OnInit {
 
   formatHeader(key: string): string {
     if (key === 'valor_desembolso') return 'DESEMBOLSO';
+    if (key === 'fecha_vencimiento_capital') return 'F. VENCIMIENTO CAPITAL';
     if (key === 'numero_radicado') return 'RADICADO';
     if (key === 'valor_aprobado') return 'VALOR PRESENTE';
     if (key === 'devolucion_descuento') return 'DEVOLUCIÓN DESC.';

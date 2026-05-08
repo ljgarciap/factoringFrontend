@@ -92,10 +92,10 @@ import Swal from 'sweetalert2';
                   <button class="action-btn retry-btn" (click)="retryLog(log)" title="Reintentar">
                     🔄
                   </button>
-                  <button *ngIf="userRole === 'superadmin' && log.filename" class="action-btn mass-delete-btn" (click)="deleteFileData(log)" title="Borrar datos de este archivo">
+                  <button *ngIf="['superadmin', 'gerente', 'operativo'].includes(userRole!) && log.filename" class="action-btn mass-delete-btn" (click)="deleteFileData(log)" title="Borrar datos de este archivo">
                     🔥
                   </button>
-                  <button *ngIf="userRole === 'superadmin'" class="action-btn delete-btn" (click)="deleteLog(log)" title="Eliminar Log">
+                  <button *ngIf="['superadmin', 'gerente', 'operativo'].includes(userRole!)" class="action-btn delete-btn" (click)="deleteLog(log)" title="Eliminar Log">
                     🗑️
                   </button>
                 </td>
@@ -382,7 +382,7 @@ export class LogsComponent implements OnInit {
     this.isLoading = true;
 
     // Construir URL con parámetros
-    const url = new URL(this.apiUrl);
+    const url = new URL(this.apiUrl, window.location.origin);
     if (this.searchTerm) url.searchParams.append('search', this.searchTerm);
     if (this.sortBy) url.searchParams.append('sortBy', this.sortBy);
     if (this.sortDir) url.searchParams.append('sortDir', this.sortDir);

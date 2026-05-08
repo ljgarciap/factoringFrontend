@@ -26,7 +26,7 @@ const targetPathDev = `./src/environments/environment.development.ts`;
 
 const envConfigFile = `export const environment = {
   production: ${envVars.PRODUCTION === 'true'},
-  apiUrl: '${envVars.API_URL || 'http://localhost:8000/api'}',
+  apiUrl: '${envVars.API_URL || '/api'}',
   n8nWebhookUrl: '${envVars.N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/factoring-upload'}'
 };
 `;
